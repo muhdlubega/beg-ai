@@ -3,7 +3,6 @@ import ChatInput from './components/ChatInput';
 import CardResponse from './components/CardResponse';
 import ChatWindow from './components/ChatWindow';
 import { getOpenAIResponse } from './services/openaiService';
-import { getClaudeResponse } from './services/claudeService';
 // import { getOllamaResponse } from './services/ollamaService';
 import { getGeminiResponse } from './services/geminiService';
 
@@ -14,16 +13,14 @@ const App = () => {
   const [conversation, setConversation] = useState<{user: string, text?: string}[]>([]);
 
   const handleSend = async (message: string) => {
-    const [openai, claude, gemini] = await Promise.all([
+    const [openai, gemini] = await Promise.all([
       getOpenAIResponse(message),
-      getClaudeResponse(message),
       // getOllamaResponse(message),
       getGeminiResponse(message),
     ]);
   
     setResponses([
       { source: 'OpenAI', response: openai?.toString() },
-      { source: 'Claude', response: claude?.toString() },
       // { source: 'Ollama', response: ollama },
       { source: 'Gemini', response: gemini?.toString() },
     ]);
