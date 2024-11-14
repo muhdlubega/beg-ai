@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ChatInput from './components/ChatInput';
 import CardResponse from './components/CardResponse';
 import ChatWindow from './components/ChatWindow';
-import { getOpenAIResponse } from './services/openaiService';
+import { getMistralResponse } from './services/mistralService';
 // import { getOllamaResponse } from './services/ollamaService';
 import { getGeminiResponse } from './services/geminiService';
 
@@ -13,14 +13,14 @@ const App = () => {
   const [conversation, setConversation] = useState<{user: string, text?: string}[]>([]);
 
   const handleSend = async (message: string) => {
-    const [openai, gemini] = await Promise.all([
-      getOpenAIResponse(message),
+    const [mistral, gemini] = await Promise.all([
+      getMistralResponse(message),
       // getOllamaResponse(message),
       getGeminiResponse(message),
     ]);
   
     setResponses([
-      { source: 'OpenAI', response: openai?.toString() },
+      { source: 'Mistral', response: mistral?.toString() },
       // { source: 'Ollama', response: ollama },
       { source: 'Gemini', response: gemini?.toString() },
     ]);
