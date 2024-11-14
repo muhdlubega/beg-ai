@@ -1,29 +1,28 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
-const ChatInput = ({ onSend }: {onSend: (message: string) => Promise<void>}) => {
-  const [message, setMessage] = useState('');
+export default function ChatInput({ onSend }: { onSend: (message: string) => Promise<void> }) {
+  const [message, setMessage] = useState('')
 
   const handleSend = () => {
     if (message.trim()) {
-      onSend(message);
-      setMessage('');
+      onSend(message)
+      setMessage('')
     }
-  };
+  }
 
   return (
-    <div className="p-4 flex">
-      <input
+    <div className="flex space-x-2 mb-4">
+      <Input
         type="text"
-        className="flex-1 p-2 border rounded"
+        className="flex-1"
         placeholder="Type your message..."
         value={message}
         onChange={(e) => setMessage(e.target.value)}
+        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
       />
-      <button onClick={handleSend} className="ml-2 p-2 bg-blue-500 text-white rounded">
-        Send
-      </button>
+      <Button onClick={handleSend}>Send</Button>
     </div>
-  );
-};
-
-export default ChatInput;
+  )
+}
