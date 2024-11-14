@@ -7,8 +7,11 @@ const openai = new OpenAI({
 export async function getOpenAIResponse(prompt: string) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt }
+      ],
     });
     return response.choices[0]?.message || "No response from OpenAI.";
   } catch (error) {
