@@ -48,7 +48,7 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
       const code = match[2].trim()
       parts.push(
         <div key={match.index} className="relative mt-4">
-          <pre className="rounded-md bg-muted p-4">
+          <pre className="rounded-md bg-muted p-4 whitespace-pre-wrap word-wrap break-word">
             <code className={`language-${language} text-sm`}>{code}</code>
           </pre>
           <Button
@@ -87,12 +87,12 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
       const match = line.match(numberedListRegex)
       if (match) {
         return (
-          <div key={index} className="mt-2">
+          <div key={index} className="mt-2 whitespace-pre-wrap word-wrap break-word">
             <span className="font-semibold">{match[1]}</span> {formatBoldText(match[2])}
           </div>
         )
       }
-      return <div key={index}>{formatBoldText(line)}</div>
+      return <div key={index} className="whitespace-pre-wrap word-wrap break-word">{formatBoldText(line)}</div>
     })
   }
 
@@ -119,7 +119,7 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
                 msg.user === "You"
                   ? "bg-primary text-primary-foreground ml-auto"
                   : "bg-muted"
-              } max-w-[80%] text-left`}
+              } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
             >
               <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
             </div>

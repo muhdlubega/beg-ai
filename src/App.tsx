@@ -65,7 +65,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
-      <div className="container mx-auto p-4 max-w-4xl">
+      <div className="container mx-auto p-4 max-w-5xl">
         {chatSource ? (
           <>
             <Button
