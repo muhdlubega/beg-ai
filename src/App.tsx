@@ -65,7 +65,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
-      <div className="container mx-auto p-4 max-w-3xl">
+      <div className="container mx-auto p-4 max-w-4xl">
         {chatSource ? (
           <>
             <Button
@@ -81,10 +81,11 @@ export default function App() {
           </>
         ) : (
           <>
-            <h1 className="flex mb-8">
+            <h1 className="flex mb-2">
               <strong>Beg</strong>
               <TypingText />
             </h1>
+            <h6 className="mb-4 text-zinc-400">Welcome to Beg.AI. Enter your prompt and select your preferred response</h6>
             <ChatInput onSend={handleSend} />
             {loading ? (
               <div className="flex animate-pulse space-x-4 mt-4">
