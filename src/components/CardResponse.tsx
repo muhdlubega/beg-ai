@@ -18,9 +18,11 @@ export default function CardResponse({
         <CardTitle>{source}</CardTitle>
       </CardHeader>
       <CardContent>
-        <pre className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
+          <pre>
           <code>{typeof response === 'string' ? response : JSON.stringify(response, null, 2)}</code>
-        </pre>
+          </pre>
+        </p>
       </CardContent>
     </Card>
   )
