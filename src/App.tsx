@@ -4,7 +4,6 @@ import CardResponse from "./components/CardResponse";
 import ChatWindow from "./components/ChatWindow";
 import { getMistralResponse } from "./services/mistralService";
 import { getGeminiResponse } from "./services/geminiService";
-import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TypingText from "./components/TypingText";
 
@@ -38,11 +37,16 @@ export default function App() {
 
     setResponses(newResponses);
 
-    setConversation((prev) => [
-      ...prev,
-      { user: "Suzie", text: mistral?.toString() },
-      { user: "John", text: gemini?.toString() },
-    ]);
+    if (chatSource) {
+      const botResponse = newResponses.find(r => r.source === chatSource)?.response;
+      setConversation(prev => [...prev, { user: chatSource, text: botResponse }]);
+    } else {
+      setConversation((prev) => [
+        ...prev,
+        { user: "Suzie", text: mistral?.toString() },
+        { user: "John", text: gemini?.toString() },
+      ]);
+    }
   };
 
   const handleSelect = (source: string) => {
@@ -58,9 +62,18 @@ export default function App() {
     ]);
   };
 
-  const handleBack = () => {
-    setChatSource("");
-    setConversation([]);
+  const switchBot = () => {
+    const newSource = chatSource === "Suzie" ? "John" : "Suzie";
+    const botResponse = responses.find((r) => r.source === newSource)?.response;
+    const userMessage = conversation.find((msg) => msg.user === "You")?.text;
+
+    if (!userMessage) return;
+
+    setChatSource(newSource);
+    setConversation([
+      { user: "You", text: userMessage },
+      { user: newSource, text: botResponse },
+    ]);
   };
 
   return (
@@ -70,11 +83,10 @@ export default function App() {
           <>
             <Button
               variant="outline"
-              size="icon"
               className="mb-4"
-              onClick={handleBack}
+              onClick={switchBot}
             >
-              <ArrowLeft className="h-4 w-4" />
+              Ask {chatSource === "Suzie" ? "John" : "Suzie"} instead
             </Button>
             <ChatWindow source={chatSource} conversation={conversation} loading={loading} />
             <ChatInput onSend={handleSend} />
