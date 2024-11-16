@@ -10,7 +10,7 @@ export default function CardResponse({
   onSelect: (source: string) => void
 }) {
   return (
-    <Card 
+    <Card
       className="cursor-pointer transition-colors hover:bg-accent"
       onClick={() => onSelect(source)}
     >
@@ -18,9 +18,9 @@ export default function CardResponse({
         <CardTitle>{source}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">
-          {typeof response === 'string' ? response : JSON.stringify(response)}
-        </p>
+        <pre className="text-sm text-muted-foreground">
+          <code>{typeof response === 'string' ? response : JSON.stringify(response, null, 2)}</code>
+        </pre>
       </CardContent>
     </Card>
   )
