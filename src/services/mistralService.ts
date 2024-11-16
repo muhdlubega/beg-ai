@@ -10,9 +10,9 @@ export async function getMistralResponse(prompt: string) {
         { role: 'user', content: prompt }
       ],
     });
-    return chatResponse.choices?.[0]?.message.content || "No response from Mistral.";
+    return chatResponse.choices?.[0]?.message.content || "No response from Suzie.";
   } catch (error) {
     console.error("Mistral API Error:", error);
-    return "Error fetching response from Mistral.";
+    return "Suzie is on a short break. Please try again later";
   }
 }

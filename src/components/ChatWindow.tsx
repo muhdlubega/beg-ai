@@ -1,29 +1,110 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useRef } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Copy } from 'lucide-react'
 
-export default function ChatWindow({
-  source,
-  loading,
-  conversation,
-}: {
-  source: string;
-  loading: boolean;
+interface ChatWindowProps {
+  source: string
+  loading: boolean
   conversation: {
-    user: string;
-    text?: string;
-  }[];
-}) {
+    user: string
+    text?: string
+  }[]
+}
+
+interface CodeMatch {
+  0: string
+  1?: string
+  2: string
+  index: number
+  input: string
+}
+
+export default function ChatWindow({ source, loading, conversation }: ChatWindowProps) {
   const filteredConversation = conversation.filter(
     (msg) => msg.user === "You" || msg.user === source
-  );
+  )
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+      scrollRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [conversation, loading]);
+  }, [conversation, loading])
+
+  const formatResponse = (text: string) => {
+    const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/g
+    const parts: React.ReactNode[] = []
+    let lastIndex = 0
+    let match: CodeMatch | null
+
+    while ((match = codeBlockRegex.exec(text) as CodeMatch | null) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(formatTextContent(text.slice(lastIndex, match.index)))
+      }
+      const language = match[1] || ''
+      const code = match[2].trim()
+      parts.push(
+        <div key={match.index} className="relative mt-4">
+          <pre className="rounded-md bg-muted p-4">
+            <code className={`language-${language} text-sm`}>{code}</code>
+          </pre>
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute top-2 right-2 h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation()
+              navigator.clipboard.writeText(code)
+              setCopiedIndex(match!.index)
+              setTimeout(() => setCopiedIndex(null), 2000)
+            }}
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+          {copiedIndex === match.index && (
+            <span className="absolute top-2 right-12 text-xs text-muted-foreground">
+              Copied!
+            </span>
+          )}
+        </div>
+      )
+      lastIndex = match.index + match[0].length
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(formatTextContent(text.slice(lastIndex)))
+    }
+
+    return <div className="space-y-4">{parts}</div>
+  }
+
+  const formatTextContent = (text: string): React.ReactNode[] => {
+    return text.split('\n').map((line, index) => {
+      const numberedListRegex = /^(\d+\.)\s(.+)/
+      const match = line.match(numberedListRegex)
+      if (match) {
+        return (
+          <div key={index} className="mt-2">
+            <span className="font-semibold">{match[1]}</span> {formatBoldText(match[2])}
+          </div>
+        )
+      }
+      return <div key={index}>{formatBoldText(line)}</div>
+    })
+  }
+
+  const formatBoldText = (text: string): React.ReactNode[] => {
+    const parts = text.split(/(\*\*.*?\*\*)/)
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>
+      }
+      return part
+    })
+  }
 
   return (
     <div className="border rounded-lg mb-4 h-[60vh] flex flex-col">
@@ -33,14 +114,14 @@ export default function ChatWindow({
           {filteredConversation.map((msg, index) => (
             <div
               key={index}
-              ref={scrollRef}
+              ref={index === filteredConversation.length - 1 ? scrollRef : null}
               className={`p-2 rounded-lg ${
                 msg.user === "You"
                   ? "bg-primary text-primary-foreground ml-auto"
                   : "bg-muted"
               } max-w-[80%] text-left`}
             >
-              <strong>{msg.user}:</strong> {msg.text}
+              <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
             </div>
           ))}
 
@@ -51,5 +132,5 @@ export default function ChatWindow({
         </div>
       </ScrollArea>
     </div>
-  );
+  )
 }

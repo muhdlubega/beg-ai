@@ -6,9 +6,9 @@ export async function getGeminiResponse(prompt: string) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const response = await model.generateContent(prompt);
-    return response.response.text() || 'No response from Gemini.';
+    return response.response.text() || 'No response from John.';
   } catch (error) {
     console.error('Gemini API Error:', error);
-    return 'Error fetching response from Gemini.';
+    return 'John is on a short break. Please try again later';
   }
 }
