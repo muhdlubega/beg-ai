@@ -27,23 +27,43 @@ export default function App() {
     }));
 
     setLoading(true);
-    const [mistral, gemini] = await Promise.all([
-      getMistralResponse(message),
-      getGeminiResponse(message),
+    setResponses([
+      { source: "Suzie", response: "" },
+      { source: "John", response: "" },
     ]);
-    setLoading(false);
 
-    const newResponses = [
-      { source: "Suzie", response: mistral?.toString() },
-      { source: "John", response: gemini?.toString() },
-    ];
+    const mistralStream = getMistralResponse(message);
+    const geminiStream = getGeminiResponse(message);
 
-    setResponses(newResponses);
+    const updateResponse = (source: string, chunk: string) => {
+      setResponses((prev) => 
+        prev.map((resp) => 
+          resp.source === source 
+            ? { ...resp, response: resp.response + chunk } 
+            : resp
+        )
+      );
 
-    setConversations((prev) => ({
-      Suzie: [...prev.Suzie, { user: "Suzie", text: mistral?.toString() }],
-      John: [...prev.John, { user: "John", text: gemini?.toString() }],
-    }));
+      setConversations((prev) => ({
+        ...prev,
+        [source]: [
+          ...prev[source].slice(0, -1),
+          { user: source, text: prev[source][prev[source].length - 1].text + chunk }
+        ],
+      }));
+    };
+
+    const streamResponses = async () => {
+      for await (const chunk of mistralStream) {
+        updateResponse("Suzie", chunk as string);
+      }
+      for await (const chunk of geminiStream) {
+        updateResponse("John", chunk);
+      }
+      setLoading(false);
+    };
+
+    streamResponses();
   };
 
   const handleSelect = (source: string) => {

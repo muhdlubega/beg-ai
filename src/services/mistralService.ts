@@ -2,17 +2,22 @@ import { Mistral } from '@mistralai/mistralai';
 
 const mistral = new Mistral({apiKey: import.meta.env.VITE_MISTRAL_API_KEY});
 
-export async function getMistralResponse(prompt: string) {
+export async function* getMistralResponse(prompt: string) {
   try {
-    const chatResponse = await mistral.chat.complete({
+    const stream = await mistral.chat.stream({
       model: 'mistral-tiny',
       messages: [
         { role: 'user', content: prompt }
       ],
     });
-    return chatResponse.choices?.[0]?.message.content || "No response from Suzie.";
+
+    for await (const chunk of stream) {
+      if (chunk.data.choices[0]?.delta?.content) {
+        yield chunk.data.choices[0].delta.content;
+      }
+    }
   } catch (error) {
     console.error("Mistral API Error:", error);
-    return "Suzie is on a short break. Please try again later";
+    yield "Suzie is on a short break. Please try again later";
   }
 }
