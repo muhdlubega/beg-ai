@@ -33,52 +33,54 @@ export default function App() {
 
   const handleSend = async (message: string) => {
     setLoading(true);
-    const initialBotResponses = {
-      Suzie: { user: "Suzie", text: "" },
-      John: { user: "John", text: "" },
-    };
+    
+    if (chatSource) {
+      setConversations((prev) => ({
+        ...prev,
+        [chatSource]: [
+          ...prev[chatSource],
+          { user: "You", text: message },
+          { user: chatSource, text: "" }
+        ],
+      }));
 
-    setConversations((prev) => {
-      const newConversations = {
-        Suzie: [...prev.Suzie, { user: "You", text: message }, initialBotResponses.Suzie],
-        John: [...prev.John, { user: "You", text: message }, initialBotResponses.John],
+      const stream = chatSource === "Suzie" ? getMistralResponse(message) : getGeminiResponse(message);
+      
+      try {
+        for await (const chunk of stream) {
+          setConversations((prev) => ({
+            ...prev,
+            [chatSource]: prev[chatSource].map((msg, index) => {
+              if (index === prev[chatSource].length - 1 && msg.user === chatSource) {
+                return { ...msg, text: (msg.text || "") + chunk };
+              }
+              return msg;
+            }),
+          }));
+        }
+      } catch (error) {
+        console.error("Error in streaming response:", error);
+      }
+    } else {
+      setResponses([
+        { source: "Suzie", response: "" },
+        { source: "John", response: "" },
+      ]);
+
+      const mistralStream = getMistralResponse(message);
+      const geminiStream = getGeminiResponse(message);
+      setLoading(false);
+
+      const updateResponse = (source: string, chunk: string) => {
+        setResponses((prev) =>
+          prev.map((resp) =>
+            resp.source === source
+              ? { ...resp, response: resp.response + chunk }
+              : resp
+          )
+        );
       };
-      return newConversations;
-    });
 
-    setResponses([
-      { source: "Suzie", response: "" },
-      { source: "John", response: "" },
-    ]);
-
-    const mistralStream = getMistralResponse(message);
-    const geminiStream = getGeminiResponse(message);
-    setLoading(false);
-
-    const updateResponse = (source: string, chunk: string) => {
-      setResponses((prev) =>
-        prev.map((resp) =>
-          resp.source === source
-            ? { ...resp, response: resp.response + chunk }
-            : resp
-        )
-      );
-
-      setConversations((prev) => {
-        const newConversations = {
-          ...prev,
-          [source]: prev[source].map((msg, index) => {
-            if (index === prev[source].length - 1 && msg.user === source) {
-              return { ...msg, text: (msg.text || "") + chunk };
-            }
-            return msg;
-          }),
-        };
-        return newConversations;
-      });
-    };
-
-    const streamResponses = async () => {
       try {
         for await (const chunk of mistralStream) {
           updateResponse("Suzie", chunk as string);
@@ -89,9 +91,7 @@ export default function App() {
       } catch (error) {
         console.error("Error in streaming responses:", error);
       }
-    };
-
-    streamResponses();
+    }
   };
 
   const handleSelect = (source: string) => {
@@ -105,13 +105,15 @@ export default function App() {
     setConversations((prev) => ({ ...prev, [newSource]: conversations[newSource] }));
   };
 
-  const clearHistory = () => {
-    const emptyConversations = {
-      Suzie: [],
-      John: [],
-    };
-    setConversations(emptyConversations);
-    Cookies.remove(COOKIE_NAME);
+  const clearHistory = (source: string) => {
+    setConversations((prev) => ({
+      ...prev,
+      [source]: [],
+    }));
+    Cookies.set(COOKIE_NAME, JSON.stringify({
+      ...conversations,
+      [source]: [],
+    }));
   };
 
   const hasSavedConversations = () => {
@@ -134,7 +136,7 @@ export default function App() {
               source={chatSource}
               conversation={conversations[chatSource]}
               loading={loading}
-              onClearHistory={clearHistory}
+              onClearHistory={() => clearHistory(chatSource)}
             />
             <ChatInput onSend={handleSend} />
           </>
