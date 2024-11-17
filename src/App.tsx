@@ -7,6 +7,7 @@ import { getGeminiResponse } from "./services/geminiService";
 import { Button } from "@/components/ui/button";
 import TypingText from "./components/TypingText";
 import Cookies from 'js-cookie';
+import { Bot } from "lucide-react";
 
 const COOKIE_NAME = 'chat_history';
 
@@ -55,10 +56,10 @@ export default function App() {
     setLoading(false);
 
     const updateResponse = (source: string, chunk: string) => {
-      setResponses((prev) => 
-        prev.map((resp) => 
-          resp.source === source 
-            ? { ...resp, response: resp.response + chunk } 
+      setResponses((prev) =>
+        prev.map((resp) =>
+          resp.source === source
+            ? { ...resp, response: resp.response + chunk }
             : resp
         )
       );
@@ -95,13 +96,13 @@ export default function App() {
 
   const handleSelect = (source: string) => {
     setChatSource(source);
-    setConversations((prev) => ({...prev, [source]: conversations[source]}));
+    setConversations((prev) => ({ ...prev, [source]: conversations[source] }));
   };
 
   const switchBot = () => {
     const newSource = chatSource === "Suzie" ? "John" : "Suzie";
     setChatSource(newSource);
-    setConversations((prev) => ({...prev, [newSource]: conversations[newSource]}));
+    setConversations((prev) => ({ ...prev, [newSource]: conversations[newSource] }));
   };
 
   const clearHistory = () => {
@@ -113,21 +114,25 @@ export default function App() {
     Cookies.remove(COOKIE_NAME);
   };
 
+  const hasSavedConversations = () => {
+    return conversations.Suzie.length > 0 || conversations.John.length > 0;
+  };
+
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
       <div className="container h-full mx-auto p-4 max-w-5xl">
         {chatSource ? (
           <>
-              <Button
-                variant="outline"
+            <Button
+              variant="outline"
               className="mb-4"
-                onClick={switchBot}
-              >
-                Ask {chatSource === "Suzie" ? "John" : "Suzie"} instead
-              </Button>
-            <ChatWindow 
-              source={chatSource} 
-              conversation={conversations[chatSource]} 
+              onClick={switchBot}
+            >
+              Ask {chatSource === "Suzie" ? "John" : "Suzie"} instead
+            </Button>
+            <ChatWindow
+              source={chatSource}
+              conversation={conversations[chatSource]}
               loading={loading}
               onClearHistory={clearHistory}
             />
@@ -135,29 +140,53 @@ export default function App() {
           </>
         ) : (
           <>
-              <h1 className="flex mb-2">
-                <strong>Beg</strong>
-                <TypingText />
-              </h1>
+            <h1 className="flex mb-2">
+              <strong>Beg</strong>
+              <TypingText />
+            </h1>
             <h6 className="mb-4 text-zinc-400">
               Welcome to Beg.AI. Enter your prompt and select your preferred response
             </h6>
             <ChatInput onSend={handleSend} />
+            {hasSavedConversations() ? (
+              <div className="flex flex-col space-y-4 mt-4">
+                <div className="flex space-x-4">
+                  {conversations.Suzie.length > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handleSelect("Suzie")}
+                    >
+                      <Bot className="text-fuchsia-600 h-4 w-4" />
+                      Recommence: Suzie
+                    </Button>
+                  )}
+                  {conversations.John.length > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handleSelect("John")}
+                    >
+                      <Bot className="text-cyan-600 h-4 w-4" />
+                      Recommence: John
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : null}
             {loading ? (
               <div className="flex animate-pulse space-x-4 mt-4">
                 <div className="h-64 w-1/2 bg-muted rounded"></div>
                 <div className="h-64 w-1/2 bg-muted rounded"></div>
               </div>
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {responses.map((resp) => (
-                <CardResponse
-                  key={resp.source}
-                  {...resp}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                {responses.map((resp) => (
+                  <CardResponse
+                    key={resp.source}
+                    {...resp}
+                    onSelect={handleSelect}
+                  />
+                ))}
+              </div>
             )}
           </>
         )}

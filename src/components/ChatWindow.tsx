@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Copy, Trash2 } from 'lucide-react'
+import { Bot, Copy, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -127,7 +127,10 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
   return (
     <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
       <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-2xl font-bold">{source} Bot</h2>
+        <div className="flex gap-2 items-center">
+          <h2 className="text-2xl font-bold">{source} Bot</h2>
+          <Bot className={source === 'John' ? 'text-cyan-600' : 'text-fuchsia-600'} />
+        </div>
         <Button
           size="icon"
           variant='ghost'
@@ -143,8 +146,8 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
             <div
               key={index}
               className={`p-2 rounded-lg ${msg.user === "You"
-                  ? "bg-primary text-primary-foreground ml-auto"
-                  : "bg-muted"
+                ? "bg-primary text-primary-foreground ml-auto"
+                : "bg-muted"
                 } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
             >
               <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
