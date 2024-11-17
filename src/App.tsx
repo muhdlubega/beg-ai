@@ -7,7 +7,7 @@ import { getGeminiResponse } from "./services/geminiService";
 import { Button } from "@/components/ui/button";
 import TypingText from "./components/TypingText";
 import Cookies from 'js-cookie';
-import { Bot } from "lucide-react";
+import { Bot, HousePlug } from "lucide-react";
 
 const COOKIE_NAME = 'chat_history';
 
@@ -35,33 +35,33 @@ export default function App() {
     if (chatSource) {
     } else {
       setLoading(true);
-      
+
       setConversations((prev) => ({
         ...prev,
         Suzie: [...prev.Suzie, { user: "You", text: message }, { user: "Suzie", text: "" }],
         John: [...prev.John, { user: "You", text: message }, { user: "John", text: "" }],
       }));
-  
+
       setResponses([
         { source: "Suzie", response: "" },
         { source: "John", response: "" },
       ]);
-  
+
       const mistralStream = getMistralResponse(message);
       const geminiStream = getGeminiResponse(message);
-  
+
       const [mistralIterator, geminiIterator] = [
         mistralStream[Symbol.asyncIterator](),
         geminiStream[Symbol.asyncIterator](),
       ];
-  
+
       try {
         const [firstMistral, firstGemini] = await Promise.all([
           mistralIterator.next(),
           geminiIterator.next(),
         ]);
         setLoading(false);
-  
+
         if (!firstMistral.done) {
           setResponses((prev) =>
             prev.map((resp) =>
@@ -80,7 +80,7 @@ export default function App() {
             }),
           }));
         }
-  
+
         if (!firstGemini.done) {
           setResponses((prev) =>
             prev.map((resp) =>
@@ -99,7 +99,7 @@ export default function App() {
             }),
           }));
         }
-  
+
         for await (const chunk of mistralStream) {
           if (chunk === firstMistral.value) continue;
           setResponses((prev) =>
@@ -119,7 +119,7 @@ export default function App() {
             }),
           }));
         }
-  
+
         for await (const chunk of geminiStream) {
           if (chunk === firstGemini.value) continue;
           setResponses((prev) =>
@@ -177,14 +177,20 @@ export default function App() {
       <div className="container h-full mx-auto p-4 max-w-5xl">
         {chatSource ? (
           <>
-            <Button
-              variant="outline"
-              className="mb-4"
-              onClick={switchBot}
-            >
-              <Bot className={`${chatSource === 'Suzie' ? 'text-cyan-600' : 'text-fuchsia-600'} h-4 w-4`} />
-              [Confabulate]: {chatSource === "Suzie" ? "John" : "Suzie"}
-            </Button>
+            <div className="flex items-center space-x-2 mb-4">
+              <HousePlug
+                className="cursor-pointer hover:text-zinc-500"
+                onClick={() => setChatSource("")}
+              />
+              <Button
+                variant="outline"
+                onClick={switchBot}
+                className="flex items-center gap-2"
+              >
+                <Bot className={`${chatSource === 'Suzie' ? 'text-cyan-600' : 'text-fuchsia-600'} h-4 w-4`} />
+                [Confabulate]: {chatSource === "Suzie" ? "John" : "Suzie"}
+              </Button>
+            </div>
             <ChatWindow
               source={chatSource}
               conversation={conversations[chatSource]}
@@ -203,9 +209,8 @@ export default function App() {
               Welcome to Beg.AI. Enter your prompt and select your preferred response
             </h6>
             <ChatInput onSend={handleSend} />
-            {hasSavedConversations() ? (
-              <div className="flex flex-col space-y-4 mt-4">
-                <div className="flex space-x-4">
+            {hasSavedConversations() && responses.length === 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                   {conversations.Suzie.length > 0 && (
                     <Button
                       variant="outline"
@@ -224,7 +229,6 @@ export default function App() {
                       [Recommence]: John
                     </Button>
                   )}
-                </div>
               </div>
             ) : null}
             {loading ? (
