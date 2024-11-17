@@ -1,7 +1,15 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Copy } from 'lucide-react'
+import { Copy, Trash2 } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface ChatWindowProps {
   source: string
@@ -10,6 +18,7 @@ interface ChatWindowProps {
     user: string
     text?: string
   }[]
+  onClearHistory: () => void
 }
 
 interface CodeMatch {
@@ -20,11 +29,18 @@ interface CodeMatch {
   input: string
 }
 
-export default function ChatWindow({ source, loading, conversation }: ChatWindowProps) {
+export default function ChatWindow({ source, loading, conversation, onClearHistory }: ChatWindowProps) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
   const filteredConversation = conversation.filter(
     (msg) => msg.user === "You" || msg.user === source
   )
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+
+  const handleDelete = () => {
+    onClearHistory();
+    setShowDeleteDialog(false);
+  };
 
   const formatResponse = (text: string) => {
     const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/g
@@ -100,17 +116,26 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
 
   return (
     <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
-      <h2 className="text-2xl font-bold p-4 border-b">{source} Bot</h2>
+      <div className="flex justify-between items-center p-4 border-b">
+        <h2 className="text-2xl font-bold">{source} Bot</h2>
+        <Button
+          size="icon"
+          variant='ghost'
+          onClick={() => setShowDeleteDialog(true)}
+          className="h-8 w-8 bg-transparent hover:text-destructive"
+        >
+          <Trash2 color="black" className="h-4 w-4" />
+        </Button>
+      </div>
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">
           {filteredConversation.map((msg, index) => (
             <div
               key={index}
-              className={`p-2 rounded-lg ${
-                msg.user === "You"
+              className={`p-2 rounded-lg ${msg.user === "You"
                   ? "bg-primary text-primary-foreground ml-auto"
                   : "bg-muted"
-              } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
+                } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
             >
               <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
             </div>
@@ -122,6 +147,30 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
           )}
         </div>
       </ScrollArea>
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="[&>button]:hidden">
+          <DialogHeader>
+            <DialogTitle>Delete Conversation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to clear your chat history? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="black"
+              onClick={handleDelete}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
