@@ -33,53 +33,15 @@ export default function App() {
 
   const handleSend = async (message: string) => {
     if (chatSource) {
-      setLoading(true);
-      setConversations((prev) => ({
-        ...prev,
-        [chatSource]: [
-          ...prev[chatSource],
-          { user: "You", text: message },
-          { user: chatSource, text: "" }
-        ],
-      }));
-  
-      const stream = chatSource === "Suzie" ? getMistralResponse(message) : getGeminiResponse(message);
-  
-      try {
-        const streamIterator = stream[Symbol.asyncIterator]();
-        const firstChunk = await streamIterator.next();
-        setLoading(false);
-  
-        if (!firstChunk.done) {
-          setConversations((prev) => ({
-            ...prev,
-            [chatSource]: prev[chatSource].map((msg, index) => {
-              if (index === prev[chatSource].length - 1 && msg.user === chatSource) {
-                return { ...msg, text: (msg.text || "") + firstChunk.value };
-              }
-              return msg;
-            }),
-          }));
-        }
-  
-        for await (const chunk of stream) {
-          if (chunk === firstChunk.value) continue;
-          setConversations((prev) => ({
-            ...prev,
-            [chatSource]: prev[chatSource].map((msg, index) => {
-              if (index === prev[chatSource].length - 1 && msg.user === chatSource) {
-                return { ...msg, text: (msg.text || "") + chunk };
-              }
-              return msg;
-            }),
-          }));
-        }
-      } catch (error) {
-        console.error("Error in streaming response:", error);
-        setLoading(false);
-      }
     } else {
       setLoading(true);
+      
+      setConversations((prev) => ({
+        ...prev,
+        Suzie: [...prev.Suzie, { user: "You", text: message }, { user: "Suzie", text: "" }],
+        John: [...prev.John, { user: "You", text: message }, { user: "John", text: "" }],
+      }));
+  
       setResponses([
         { source: "Suzie", response: "" },
         { source: "John", response: "" },
@@ -108,6 +70,15 @@ export default function App() {
                 : resp
             )
           );
+          setConversations((prev) => ({
+            ...prev,
+            Suzie: prev.Suzie.map((msg, index) => {
+              if (index === prev.Suzie.length - 1 && msg.user === "Suzie") {
+                return { ...msg, text: (msg.text || "") + firstMistral.value };
+              }
+              return msg;
+            }),
+          }));
         }
   
         if (!firstGemini.done) {
@@ -118,6 +89,15 @@ export default function App() {
                 : resp
             )
           );
+          setConversations((prev) => ({
+            ...prev,
+            John: prev.John.map((msg, index) => {
+              if (index === prev.John.length - 1 && msg.user === "John") {
+                return { ...msg, text: (msg.text || "") + firstGemini.value };
+              }
+              return msg;
+            }),
+          }));
         }
   
         for await (const chunk of mistralStream) {
@@ -129,6 +109,15 @@ export default function App() {
                 : resp
             )
           );
+          setConversations((prev) => ({
+            ...prev,
+            Suzie: prev.Suzie.map((msg, index) => {
+              if (index === prev.Suzie.length - 1 && msg.user === "Suzie") {
+                return { ...msg, text: (msg.text || "") + chunk };
+              }
+              return msg;
+            }),
+          }));
         }
   
         for await (const chunk of geminiStream) {
@@ -140,6 +129,15 @@ export default function App() {
                 : resp
             )
           );
+          setConversations((prev) => ({
+            ...prev,
+            John: prev.John.map((msg, index) => {
+              if (index === prev.John.length - 1 && msg.user === "John") {
+                return { ...msg, text: (msg.text || "") + chunk };
+              }
+              return msg;
+            }),
+          }));
         }
       } catch (error) {
         console.error("Error in streaming responses:", error);
