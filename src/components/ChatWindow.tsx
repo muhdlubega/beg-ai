@@ -107,7 +107,7 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
   }
 
   return (
-    <div className="border rounded-lg mb-4 h-[60vh] flex flex-col">
+    <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
       <h2 className="text-2xl font-bold p-4 border-b">{source} Bot</h2>
       <ScrollArea className="flex-grow p-4">
         <div className="space-y-4">

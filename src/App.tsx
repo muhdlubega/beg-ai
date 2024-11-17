@@ -12,17 +12,20 @@ export default function App() {
     { source: string; response: string }[]
   >([]);
   const [chatSource, setChatSource] = useState<string>("");
-  const [conversation, setConversation] = useState<
-    { user: string; text?: string }[]
-  >([]);
+  const [conversations, setConversations] = useState<{
+    [key: string]: { user: string; text?: string }[]
+  }>({
+    Suzie: [],
+    John: [],
+  });
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleSend = async (message: string) => {
-    setConversation((prev) => [
-      ...prev,
-      { user: "You", text: message },
-    ]);
-  
+    setConversations((prev) => ({
+      Suzie: [...prev.Suzie, { user: "You", text: message }],
+      John: [...prev.John, { user: "You", text: message }],
+    }));
+
     setLoading(true);
     const [mistral, gemini] = await Promise.all([
       getMistralResponse(message),
@@ -37,48 +40,26 @@ export default function App() {
 
     setResponses(newResponses);
 
-    if (chatSource) {
-      const botResponse = newResponses.find(r => r.source === chatSource)?.response;
-      setConversation(prev => [...prev, { user: chatSource, text: botResponse }]);
-    } else {
-      setConversation((prev) => [
-        ...prev,
-        { user: "Suzie", text: mistral?.toString() },
-        { user: "John", text: gemini?.toString() },
-      ]);
-    }
+    setConversations((prev) => ({
+      Suzie: [...prev.Suzie, { user: "Suzie", text: mistral?.toString() }],
+      John: [...prev.John, { user: "John", text: gemini?.toString() }],
+    }));
   };
 
   const handleSelect = (source: string) => {
-    const botResponse = responses.find((r) => r.source === source)?.response;
-    const userMessage = conversation.find((msg) => msg.user === "You")?.text;
-
-    if (!userMessage) return;
-
     setChatSource(source);
-    setConversation([
-      { user: "You", text: userMessage },
-      { user: source, text: botResponse },
-    ]);
+    setConversations((prev) => ({...prev, [source]: conversations[source]}))
   };
 
   const switchBot = () => {
     const newSource = chatSource === "Suzie" ? "John" : "Suzie";
-    const botResponse = responses.find((r) => r.source === newSource)?.response;
-    const userMessage = conversation.find((msg) => msg.user === "You")?.text;
-
-    if (!userMessage) return;
-
     setChatSource(newSource);
-    setConversation([
-      { user: "You", text: userMessage },
-      { user: newSource, text: botResponse },
-    ]);
+    setConversations((prev) => ({...prev, [newSource]: conversations[newSource]}))
   };
 
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
-      <div className="container mx-auto p-4 max-w-5xl">
+      <div className="container h-full mx-auto p-4 max-w-5xl">
         {chatSource ? (
           <>
             <Button
@@ -88,7 +69,7 @@ export default function App() {
             >
               Ask {chatSource === "Suzie" ? "John" : "Suzie"} instead
             </Button>
-            <ChatWindow source={chatSource} conversation={conversation} loading={loading} />
+            <ChatWindow source={chatSource} conversation={conversations[chatSource]} loading={loading} />
             <ChatInput onSend={handleSend} />
           </>
         ) : (
