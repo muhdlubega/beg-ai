@@ -33,22 +33,31 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
+  let scrollTimeout: NodeJS.Timeout;
 
   useEffect(() => {
-    if (scrollAreaRef.current && shouldAutoScroll) {
+    if (scrollAreaRef.current && !isUserScrolling) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [conversation, loading, shouldAutoScroll]);
+  }, [conversation, loading, isUserScrolling]);
 
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLDivElement;
-    const isAtBottom = Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 50;
-    setShouldAutoScroll(isAtBottom);
+  const handleUserInteraction = () => {
+    setIsUserScrolling(true);
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      setIsUserScrolling(false);
+    }, 1000);
   };
+  
+  useEffect(() => {
+    return () => {
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   const filteredConversation = conversation.filter(
     (msg) => msg.user === "You" || msg.user === source
@@ -150,7 +159,10 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
       <ScrollArea
         ref={scrollAreaRef}
         className="flex-grow p-4"
-        onScroll={handleScroll}>
+        onTouchStart={handleUserInteraction}
+        onMouseDown={handleUserInteraction}
+        onWheel={handleUserInteraction}
+        >
         <div className="space-y-4">
           {filteredConversation.map((msg, index) => (
             <>
