@@ -94,8 +94,8 @@ export default function App() {
         { source: "John", response: "" },
       ]);
 
-      const mistralStream = getMistralResponse(message);
-      const geminiStream = getGeminiResponse(message);
+      const mistralStream = getMistralResponse(message, files);
+      const geminiStream = getGeminiResponse(message, files);
 
       const [mistralIterator, geminiIterator] = [
         mistralStream[Symbol.asyncIterator](),
