@@ -33,6 +33,51 @@ export default function App() {
 
   const handleSend = async (message: string) => {
     if (chatSource) {
+      setLoading(true);
+      setConversations((prev) => ({
+        ...prev,
+        [chatSource]: [
+          ...prev[chatSource],
+          { user: "You", text: message },
+          { user: chatSource, text: "" }
+        ],
+      }));
+
+      const stream = chatSource === "Suzie" ? getMistralResponse(message) : getGeminiResponse(message);
+
+      try {
+        const streamIterator = stream[Symbol.asyncIterator]();
+        const firstChunk = await streamIterator.next();
+        setLoading(false);
+
+        if (!firstChunk.done) {
+          setConversations((prev) => ({
+            ...prev,
+            [chatSource]: prev[chatSource].map((msg, index) => {
+              if (index === prev[chatSource].length - 1 && msg.user === chatSource) {
+                return { ...msg, text: (msg.text || "") + firstChunk.value };
+              }
+              return msg;
+            }),
+          }));
+        }
+
+        for await (const chunk of stream) {
+          if (chunk === firstChunk.value) continue;
+          setConversations((prev) => ({
+            ...prev,
+            [chatSource]: prev[chatSource].map((msg, index) => {
+              if (index === prev[chatSource].length - 1 && msg.user === chatSource) {
+                return { ...msg, text: (msg.text || "") + chunk };
+              }
+              return msg;
+            }),
+          }));
+        }
+      } catch (error) {
+        console.error("Error in streaming response:", error);
+        setLoading(false);
+      }
     } else {
       setLoading(true);
 
@@ -211,24 +256,24 @@ export default function App() {
             <ChatInput onSend={handleSend} />
             {hasSavedConversations() && responses.length === 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                  {conversations.Suzie.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => handleSelect("Suzie")}
-                    >
-                      <Bot className="text-fuchsia-600 h-4 w-4" />
-                      [Recommence]: Suzie
-                    </Button>
-                  )}
-                  {conversations.John.length > 0 && (
-                    <Button
-                      variant="outline"
-                      onClick={() => handleSelect("John")}
-                    >
-                      <Bot className="text-cyan-600 h-4 w-4" />
-                      [Recommence]: John
-                    </Button>
-                  )}
+                {conversations.Suzie.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSelect("Suzie")}
+                  >
+                    <Bot className="text-fuchsia-600 h-4 w-4" />
+                    [Recommence]: Suzie
+                  </Button>
+                )}
+                {conversations.John.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSelect("John")}
+                  >
+                    <Bot className="text-cyan-600 h-4 w-4" />
+                    [Recommence]: John
+                  </Button>
+                )}
               </div>
             ) : null}
             {loading ? (
