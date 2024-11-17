@@ -21,6 +21,7 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleSend = async (message: string) => {
+    setLoading(true);
     const initialBotResponses = {
       Suzie: { user: "Suzie", text: "" },
       John: { user: "John", text: "" },
@@ -31,7 +32,6 @@ export default function App() {
       John: [...prev.John, { user: "You", text: message }, initialBotResponses.John],
     }));
 
-    setLoading(true);
     setResponses([
       { source: "Suzie", response: "" },
       { source: "John", response: "" },
@@ -39,6 +39,7 @@ export default function App() {
 
     const mistralStream = getMistralResponse(message);
     const geminiStream = getGeminiResponse(message);
+    setLoading(false);
 
     const updateResponse = (source: string, chunk: string) => {
       setResponses((prev) => 
@@ -70,8 +71,6 @@ export default function App() {
         }
       } catch (error) {
         console.error("Error in streaming responses:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
