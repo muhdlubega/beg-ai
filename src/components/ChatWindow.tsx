@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Copy, Trash2 } from 'lucide-react'
 import {
@@ -32,6 +32,16 @@ interface CodeMatch {
 export default function ChatWindow({ source, loading, conversation, onClearHistory }: ChatWindowProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [conversation, loading]);
 
   const filteredConversation = conversation.filter(
     (msg) => msg.user === "You" || msg.user === source
@@ -127,7 +137,7 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
           <Trash2 color="black" className="h-4 w-4" />
         </Button>
       </div>
-      <ScrollArea className="flex-grow p-4">
+      <ScrollArea ref={scrollAreaRef} className="flex-grow p-4">
         <div className="space-y-4">
           {filteredConversation.map((msg, index) => (
             <div
