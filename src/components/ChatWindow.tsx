@@ -33,15 +33,22 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
+    if (scrollAreaRef.current && shouldAutoScroll) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [conversation, loading]);
+  }, [conversation, loading, shouldAutoScroll]);
+
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const isAtBottom = Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 50;
+    setShouldAutoScroll(isAtBottom);
+  };
 
   const filteredConversation = conversation.filter(
     (msg) => msg.user === "You" || msg.user === source
@@ -140,7 +147,10 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
           <Trash2 color="black" className="h-4 w-4" />
         </Button>
       </div>
-      <ScrollArea ref={scrollAreaRef} className="flex-grow p-4">
+      <ScrollArea
+        ref={scrollAreaRef}
+        className="flex-grow p-4"
+        onScroll={handleScroll}>
         <div className="space-y-4">
           {filteredConversation.map((msg, index) => (
             <>
