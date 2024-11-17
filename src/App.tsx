@@ -32,9 +32,8 @@ export default function App() {
   }, [conversations]);
 
   const handleSend = async (message: string) => {
-    setLoading(true);
-    
     if (chatSource) {
+      setLoading(true);
       setConversations((prev) => ({
         ...prev,
         [chatSource]: [
@@ -43,11 +42,28 @@ export default function App() {
           { user: chatSource, text: "" }
         ],
       }));
-
+  
       const stream = chatSource === "Suzie" ? getMistralResponse(message) : getGeminiResponse(message);
-      
+  
       try {
+        const streamIterator = stream[Symbol.asyncIterator]();
+        const firstChunk = await streamIterator.next();
+        setLoading(false);
+  
+        if (!firstChunk.done) {
+          setConversations((prev) => ({
+            ...prev,
+            [chatSource]: prev[chatSource].map((msg, index) => {
+              if (index === prev[chatSource].length - 1 && msg.user === chatSource) {
+                return { ...msg, text: (msg.text || "") + firstChunk.value };
+              }
+              return msg;
+            }),
+          }));
+        }
+  
         for await (const chunk of stream) {
+          if (chunk === firstChunk.value) continue;
           setConversations((prev) => ({
             ...prev,
             [chatSource]: prev[chatSource].map((msg, index) => {
@@ -60,36 +76,74 @@ export default function App() {
         }
       } catch (error) {
         console.error("Error in streaming response:", error);
+        setLoading(false);
       }
     } else {
+      setLoading(true);
       setResponses([
         { source: "Suzie", response: "" },
         { source: "John", response: "" },
       ]);
-
+  
       const mistralStream = getMistralResponse(message);
       const geminiStream = getGeminiResponse(message);
-      setLoading(false);
-
-      const updateResponse = (source: string, chunk: string) => {
-        setResponses((prev) =>
-          prev.map((resp) =>
-            resp.source === source
-              ? { ...resp, response: resp.response + chunk }
-              : resp
-          )
-        );
-      };
-
+  
+      const [mistralIterator, geminiIterator] = [
+        mistralStream[Symbol.asyncIterator](),
+        geminiStream[Symbol.asyncIterator](),
+      ];
+  
       try {
-        for await (const chunk of mistralStream) {
-          updateResponse("Suzie", chunk as string);
+        const [firstMistral, firstGemini] = await Promise.all([
+          mistralIterator.next(),
+          geminiIterator.next(),
+        ]);
+        setLoading(false);
+  
+        if (!firstMistral.done) {
+          setResponses((prev) =>
+            prev.map((resp) =>
+              resp.source === "Suzie"
+                ? { ...resp, response: resp.response + firstMistral.value }
+                : resp
+            )
+          );
         }
+  
+        if (!firstGemini.done) {
+          setResponses((prev) =>
+            prev.map((resp) =>
+              resp.source === "John"
+                ? { ...resp, response: resp.response + firstGemini.value }
+                : resp
+            )
+          );
+        }
+  
+        for await (const chunk of mistralStream) {
+          if (chunk === firstMistral.value) continue;
+          setResponses((prev) =>
+            prev.map((resp) =>
+              resp.source === "Suzie"
+                ? { ...resp, response: resp.response + chunk }
+                : resp
+            )
+          );
+        }
+  
         for await (const chunk of geminiStream) {
-          updateResponse("John", chunk);
+          if (chunk === firstGemini.value) continue;
+          setResponses((prev) =>
+            prev.map((resp) =>
+              resp.source === "John"
+                ? { ...resp, response: resp.response + chunk }
+                : resp
+            )
+          );
         }
       } catch (error) {
         console.error("Error in streaming responses:", error);
+        setLoading(false);
       }
     }
   };
@@ -130,7 +184,8 @@ export default function App() {
               className="mb-4"
               onClick={switchBot}
             >
-              Ask {chatSource === "Suzie" ? "John" : "Suzie"} instead
+              <Bot className={`${chatSource === 'Suzie' ? 'text-cyan-600' : 'text-fuchsia-600'} h-4 w-4`} />
+              [Confabulate]: {chatSource === "Suzie" ? "John" : "Suzie"}
             </Button>
             <ChatWindow
               source={chatSource}
@@ -159,7 +214,7 @@ export default function App() {
                       onClick={() => handleSelect("Suzie")}
                     >
                       <Bot className="text-fuchsia-600 h-4 w-4" />
-                      Recommence: Suzie
+                      [Recommence]: Suzie
                     </Button>
                   )}
                   {conversations.John.length > 0 && (
@@ -168,7 +223,7 @@ export default function App() {
                       onClick={() => handleSelect("John")}
                     >
                       <Bot className="text-cyan-600 h-4 w-4" />
-                      Recommence: John
+                      [Recommence]: John
                     </Button>
                   )}
                 </div>
