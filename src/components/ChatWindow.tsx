@@ -143,21 +143,24 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
       <ScrollArea ref={scrollAreaRef} className="flex-grow p-4">
         <div className="space-y-4">
           {filteredConversation.map((msg, index) => (
-            <div
-              key={index}
-              className={`p-2 rounded-lg ${msg.user === "You"
-                ? "bg-primary text-primary-foreground ml-auto"
-                : "bg-muted"
-                } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
-            >
-              <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
-            </div>
-          ))}
+            <>
+              {
+                index === filteredConversation.length - 1 && msg.user === source && loading ? (
+                  <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left">
+                  </div>) : (
+                  <div
+                    key={index}
+                    className={`p-2 rounded-lg ${msg.user === "You"
+                      ? "bg-primary text-primary-foreground ml-auto"
+                      : "bg-muted"
+                      } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
+                  >
+                    <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
+                  </div>)
+              }
+            </>
 
-          {loading && (
-            <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left">
-            </div>
-          )}
+          ))}
         </div>
       </ScrollArea>
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
