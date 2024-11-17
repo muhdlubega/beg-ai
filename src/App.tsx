@@ -31,7 +31,7 @@ export default function App() {
     Cookies.set(COOKIE_NAME, JSON.stringify(conversations));
   }, [conversations]);
 
-  const handleSend = async (message: string) => {
+  const handleSend = async (message: string, files?: File[]) => {
     if (chatSource) {
       setLoading(true);
       setConversations((prev) => ({
@@ -43,7 +43,9 @@ export default function App() {
         ],
       }));
 
-      const stream = chatSource === "Suzie" ? getMistralResponse(message) : getGeminiResponse(message);
+      const stream = chatSource === "Suzie" 
+      ? getMistralResponse(message, files) 
+      : getGeminiResponse(message, files);
 
       try {
         const streamIterator = stream[Symbol.asyncIterator]();
