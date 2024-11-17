@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Copy } from 'lucide-react'
 
