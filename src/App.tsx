@@ -21,9 +21,14 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleSend = async (message: string) => {
+    const initialBotResponses = {
+      Suzie: { user: "Suzie", text: "" },
+      John: { user: "John", text: "" },
+    };
+
     setConversations((prev) => ({
-      Suzie: [...prev.Suzie, { user: "You", text: message }],
-      John: [...prev.John, { user: "You", text: message }],
+      Suzie: [...prev.Suzie, { user: "You", text: message }, initialBotResponses.Suzie],
+      John: [...prev.John, { user: "You", text: message }, initialBotResponses.John],
     }));
 
     setLoading(true);
@@ -46,21 +51,28 @@ export default function App() {
 
       setConversations((prev) => ({
         ...prev,
-        [source]: [
-          ...prev[source].slice(0, -1),
-          { user: source, text: prev[source][prev[source].length - 1].text + chunk }
-        ],
+        [source]: prev[source].map((msg, index) => {
+          if (index === prev[source].length - 1 && msg.user === source) {
+            return { ...msg, text: (msg.text || "") + chunk };
+          }
+          return msg;
+        }),
       }));
     };
 
     const streamResponses = async () => {
-      for await (const chunk of mistralStream) {
-        updateResponse("Suzie", chunk as string);
+      try {
+        for await (const chunk of mistralStream) {
+          updateResponse("Suzie", chunk as string);
+        }
+        for await (const chunk of geminiStream) {
+          updateResponse("John", chunk);
+        }
+      } catch (error) {
+        console.error("Error in streaming responses:", error);
+      } finally {
+        setLoading(false);
       }
-      for await (const chunk of geminiStream) {
-        updateResponse("John", chunk);
-      }
-      setLoading(false);
     };
 
     streamResponses();
@@ -68,13 +80,13 @@ export default function App() {
 
   const handleSelect = (source: string) => {
     setChatSource(source);
-    setConversations((prev) => ({...prev, [source]: conversations[source]}))
+    setConversations((prev) => ({...prev, [source]: conversations[source]}));
   };
 
   const switchBot = () => {
     const newSource = chatSource === "Suzie" ? "John" : "Suzie";
     setChatSource(newSource);
-    setConversations((prev) => ({...prev, [newSource]: conversations[newSource]}))
+    setConversations((prev) => ({...prev, [newSource]: conversations[newSource]}));
   };
 
   return (
@@ -89,7 +101,11 @@ export default function App() {
             >
               Ask {chatSource === "Suzie" ? "John" : "Suzie"} instead
             </Button>
-            <ChatWindow source={chatSource} conversation={conversations[chatSource]} loading={loading} />
+            <ChatWindow 
+              source={chatSource} 
+              conversation={conversations[chatSource]} 
+              loading={loading} 
+            />
             <ChatInput onSend={handleSend} />
           </>
         ) : (
@@ -98,7 +114,9 @@ export default function App() {
               <strong>Beg</strong>
               <TypingText />
             </h1>
-            <h6 className="mb-4 text-zinc-400">Welcome to Beg.AI. Enter your prompt and select your preferred response</h6>
+            <h6 className="mb-4 text-zinc-400">
+              Welcome to Beg.AI. Enter your prompt and select your preferred response
+            </h6>
             <ChatInput onSend={handleSend} />
             {loading ? (
               <div className="flex animate-pulse space-x-4 mt-4">
