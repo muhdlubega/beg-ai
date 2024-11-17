@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Paperclip, Trash, Trash2, X } from 'lucide-react'
+import { Paperclip, Trash2 } from 'lucide-react'
 
 interface ChatInputProps {
   onSend: (message: string, files?: File[]) => Promise<void>
