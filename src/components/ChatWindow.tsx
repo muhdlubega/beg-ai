@@ -115,18 +115,25 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
             <div
               key={index}
               ref={index === filteredConversation.length - 1 ? scrollRef : null}
-              className={`p-2 rounded-lg ${
-                msg.user === "You"
-                  ? "bg-primary text-primary-foreground ml-auto"
-                  : "bg-muted"
-              } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
+              className={`flex ${msg.user === "You" ? "justify-end" : "justify-start"}`}
             >
-              <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
+              <div
+                className={`p-2 rounded-lg ${
+                  msg.user === "You"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
+                } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
+              >
+                <strong className="block mb-1">{msg.user}:</strong>
+                {msg.text && formatResponse(msg.text)}
+              </div>
             </div>
           ))}
 
           {loading && (
-            <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left">
+            <div className="flex justify-start">
+              <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left">
+              </div>
             </div>
           )}
         </div>
