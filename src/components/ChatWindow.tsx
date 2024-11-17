@@ -24,15 +24,7 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
   const filteredConversation = conversation.filter(
     (msg) => msg.user === "You" || msg.user === source
   )
-
-  const scrollRef = useRef<HTMLDivElement>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" })
-    }
-  }, [conversation, loading])
 
   const formatResponse = (text: string) => {
     const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/g
@@ -114,7 +106,6 @@ export default function ChatWindow({ source, loading, conversation }: ChatWindow
           {filteredConversation.map((msg, index) => (
             <div
               key={index}
-              ref={index === filteredConversation.length - 1 ? scrollRef : null}
               className={`p-2 rounded-lg ${
                 msg.user === "You"
                   ? "bg-primary text-primary-foreground ml-auto"
