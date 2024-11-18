@@ -73,7 +73,7 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
       const code = match[2].trim()
       parts.push(
         <div key={match.index} className="relative">
-          <pre className="rounded-md bg-muted p-4 whitespace-pre-wrap word-wrap break-word">
+          <pre className="rounded-sm bg-black p-4 whitespace-pre-wrap word-wrap break-word">
             <code className={`language-${language} text-sm text-white`}>{code}</code>
           </pre>
           <Button
