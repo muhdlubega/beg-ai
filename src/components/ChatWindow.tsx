@@ -72,14 +72,14 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
       const language = match[1] || ''
       const code = match[2].trim()
       parts.push(
-        <div key={match.index} className="relative mt-4">
+        <div key={match.index} className="relative">
           <pre className="rounded-md bg-muted p-4 whitespace-pre-wrap word-wrap break-word">
-            <code className={`language-${language} text-sm`}>{code}</code>
+            <code className={`language-${language} text-sm text-white`}>{code}</code>
           </pre>
           <Button
             variant="outline"
             size="icon"
-            className="absolute top-2 right-2 h-8 w-8"
+            className="absolute bg-black top-4 right-4 h-8 w-8"
             onClick={(e) => {
               e.stopPropagation()
               navigator.clipboard.writeText(code)
@@ -87,7 +87,7 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
               setTimeout(() => setCopiedIndex(null), 2000)
             }}
           >
-            <Copy className="h-4 w-4" />
+            <Copy color="white" className="h-4 w-4" />
           </Button>
           {copiedIndex === match.index && (
             <span className="absolute top-2 right-12 text-xs text-muted-foreground">
