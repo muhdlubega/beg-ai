@@ -4,9 +4,16 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 async function fileToGenerativePart(file: File) {
   const bytes = await file.arrayBuffer();
+  const base64 = btoa(
+    new Uint8Array(bytes).reduce(
+      (data, byte) => data + String.fromCharCode(byte),
+      ''
+    )
+  );
+
   return {
     inlineData: {
-      data: Buffer.from(bytes).toString('base64'),
+      data: base64,
       mimeType: file.type
     },
   };
