@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supaBaseClient";
 
 interface SerializedFile {
-    name: string;
-    type: string;
-    size: number;
-    lastModified: number;
-    url?: string;
-    path?: string;
-  }
-  
-  type FileOrSerialized = File | SerializedFile;
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+  url?: string;
+  path?: string;
+}
+
+type FileOrSerialized = File | SerializedFile;
 
 interface ImagePreviewProps {
   file: FileOrSerialized;
@@ -27,23 +24,34 @@ export const ImagePreview = ({ file }: ImagePreviewProps) => {
 
   useEffect(() => {
     const getImageUrl = async () => {
-      if (file instanceof File) {
-        const url = URL.createObjectURL(file);
-        setImageUrl(url);
-        return () => URL.revokeObjectURL(url);
-      } else {
-        if (file.url) {
-          setImageUrl(file.url);
-        } else if (file.path) {
-          const { data } = supabase.storage
-            .from('chat-images')
-            .getPublicUrl(file.path);
-          if (data) {
-            setImageUrl(data.publicUrl);
+      try {
+        if (file instanceof File) {
+          const url = URL.createObjectURL(file);
+          setImageUrl(url);
+          return () => URL.revokeObjectURL(url);
+        } else {
+          if (file.url) {
+            setImageUrl(file.url);
+          } else if (file.path) {
+            const { data, error } = await supabase.storage
+              .from('chat-images')
+              .createSignedUrl(file.path, 60 * 60 * 24);
+
+            if (error) {
+              console.error('Error getting signed URL:', error);
+              throw error;
+            }
+
+            if (data) {
+              setImageUrl(data.signedUrl);
+            }
           }
         }
+      } catch (error) {
+        console.error('Error loading image:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     getImageUrl();
@@ -69,6 +77,10 @@ export const ImagePreview = ({ file }: ImagePreviewProps) => {
           className="rounded-lg max-h-64 object-contain cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => setIsZoomed(true)}
           onLoad={() => setIsLoading(false)}
+          onError={(e) => {
+            console.error('Error loading image:', e);
+            setIsLoading(false);
+          }}
         />
       </div>
 

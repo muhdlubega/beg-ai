@@ -65,6 +65,7 @@ export default function App() {
       Cookies.remove(COOKIE_NAME)
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      window.location.reload();
     } catch (error) {
       console.error('Error logging out:', error);
     }
@@ -338,44 +339,47 @@ export default function App() {
 
   const saveConversation = async (source: string, messages: any[]) => {
     if (!user) return;
-  
+
     try {
       const serializedMessages = await Promise.all(messages.map(async (msg) => {
         if (!msg.files) return msg;
-  
+
         const serializedFiles = await Promise.all(msg.files.map(async (file: File) => {
           if (file instanceof File) {
             const fileName = `${Date.now()}-${file.name}`;
             const filePath = `${user.id}/${fileName}`;
-  
+
             const { error: uploadError } = await supabase.storage
               .from('chat-images')
-              .upload(filePath, file);
-  
+              .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+              });
+
             if (uploadError) throw uploadError;
-  
-            const { data } = supabase.storage
+
+            const { data } = await supabase.storage
               .from('chat-images')
-              .getPublicUrl(filePath);
-  
+              .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+
             return {
               name: file.name,
               type: file.type,
               size: file.size,
               lastModified: file.lastModified,
               path: filePath,
-              url: data.publicUrl
+              url: data?.signedUrl || null
             };
           }
           return file;
         }));
-  
+
         return {
           ...msg,
           files: serializedFiles
         };
       }));
-  
+
       const { error } = await supabase
         .from('conversations')
         .upsert({
@@ -383,7 +387,7 @@ export default function App() {
           chat_source: source,
           messages: serializedMessages
         });
-  
+
       if (error) throw error;
     } catch (error) {
       console.error('Error saving conversation:', error);
