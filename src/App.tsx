@@ -7,7 +7,7 @@ import { getGeminiResponse } from "./services/geminiService";
 import { Button } from "@/components/ui/button";
 import TypingText from "./components/TypingText";
 import Cookies from 'js-cookie';
-import { Bot, HousePlug } from "lucide-react";
+import { Bot, HousePlug, LogIn, LogOut } from "lucide-react";
 import { ContentChunk } from "@mistralai/mistralai/models/components";
 import { supabase } from "./lib/supaBaseClient";
 import { User } from "@supabase/supabase-js";
@@ -405,24 +405,22 @@ export default function App() {
           <div className="flex items-center gap-4">
             <span className="text-sm">{user.email}</span>
             <Button
-              variant="outline"
               onClick={handleLogout}
+              className="bg-primary"
             >
-              Logout
+              <LogOut
+                className="w-4 h-4"
+              />
             </Button>
           </div>
         ) : (
           <Button
-            variant="outline"
             onClick={handleLogin}
-            className="flex items-center gap-2"
+            className="bg-primary"
           >
-            <img
-              src="https://www.google.com/favicon.ico"
-              alt="Google"
+            <LogIn
               className="w-4 h-4"
             />
-            Login with Google
           </Button>
         )}
       </div>
