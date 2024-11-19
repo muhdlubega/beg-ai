@@ -105,24 +105,24 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
           <pre className="rounded-sm border border-white p-4 whitespace-pre-wrap word-wrap break-word">
             <code className={`language-${language} text-sm text-white`}>{code}</code>
           </pre>
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute bg-black top-4 right-4 h-8 w-8"
-            onClick={(e) => {
-              e.stopPropagation()
-              navigator.clipboard.writeText(code)
-              setCopiedIndex(match!.index)
-              setTimeout(() => setCopiedIndex(null), 2000)
-            }}
-          >
-            <Copy color="white" className="h-4 w-4" />
-          </Button>
-          {copiedIndex === match.index && (
+          {copiedIndex === match.index ?
             <span className="absolute top-2 right-12 text-xs text-muted-foreground">
               Copied!
-            </span>
-          )}
+            </span> :
+            <Button
+              variant="outline"
+              size="icon"
+              className="absolute bg-black top-4 right-4 h-8 w-8"
+              onClick={(e) => {
+                e.stopPropagation()
+                navigator.clipboard.writeText(code)
+                setCopiedIndex(match!.index)
+                setTimeout(() => setCopiedIndex(null), 2000)
+              }}
+            >
+              <Copy color="white" className="h-4 w-4" />
+            </Button>
+          }
         </div>
       )
       lastIndex = match.index + match[0].length
@@ -146,7 +146,9 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
           </div>
         )
       }
-      return <div key={index} className="whitespace-pre-wrap word-wrap break-word">{formatBoldText(line)}</div>
+      if(line){
+        return <div key={index} className="whitespace-pre-wrap word-wrap break-word">{formatBoldText(line)}</div>
+      }
     })
   }
 
