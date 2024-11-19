@@ -346,22 +346,25 @@ export default function App() {
         const serializedFiles = await Promise.all(msg.files.map(async (file: File) => {
           if (file instanceof File) {
             const fileName = `${Date.now()}-${file.name}`;
-            const { error } = await supabase.storage
-              .from('chat-images')
-              .upload(`${user.id}/${fileName}`, file);
+            const filePath = `${user.id}/${fileName}`;
   
-            if (error) throw error;
-  
-            const { data: { publicUrl } } = supabase.storage
+            const { error: uploadError } = await supabase.storage
               .from('chat-images')
-              .getPublicUrl(`${user.id}/${fileName}`);
+              .upload(filePath, file);
+  
+            if (uploadError) throw uploadError;
+  
+            const { data } = supabase.storage
+              .from('chat-images')
+              .getPublicUrl(filePath);
   
             return {
               name: file.name,
               type: file.type,
               size: file.size,
               lastModified: file.lastModified,
-              url: publicUrl
+              path: filePath,
+              url: data.publicUrl
             };
           }
           return file;

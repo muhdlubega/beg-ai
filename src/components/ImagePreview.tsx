@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog"
+import { supabase } from "@/lib/supaBaseClient";
 
 interface SerializedFile {
     name: string;
@@ -10,6 +11,7 @@ interface SerializedFile {
     size: number;
     lastModified: number;
     url?: string;
+    path?: string;
   }
   
   type FileOrSerialized = File | SerializedFile;
@@ -24,16 +26,27 @@ export const ImagePreview = ({ file }: ImagePreviewProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (file instanceof File) {
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else if ('url' in file && file.url) {
-      setImageUrl(file.url);
-    } else {
-      setImageUrl('');
+    const getImageUrl = async () => {
+      if (file instanceof File) {
+        const url = URL.createObjectURL(file);
+        setImageUrl(url);
+        return () => URL.revokeObjectURL(url);
+      } else {
+        if (file.url) {
+          setImageUrl(file.url);
+        } else if (file.path) {
+          const { data } = supabase.storage
+            .from('chat-images')
+            .getPublicUrl(file.path);
+          if (data) {
+            setImageUrl(data.publicUrl);
+          }
+        }
+      }
       setIsLoading(false);
-    }
+    };
+
+    getImageUrl();
   }, [file]);
 
   if (!imageUrl) {
