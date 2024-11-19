@@ -465,7 +465,7 @@ export default function App() {
           </>
         ) : (
           <>
-            <h1 className="flex mb-2">
+            <h1 className={`${responses.length > 0 ? 'mt-10' : 'mt-0'} flex mb-2`}>
               <strong>Beg</strong>
               <TypingText />
             </h1>
