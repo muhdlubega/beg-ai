@@ -62,6 +62,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      Cookies.remove(COOKIE_NAME)
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {
