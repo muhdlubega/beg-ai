@@ -5,7 +5,7 @@ type ContentPart = {
   text: string;
 } | {
   type: 'image_url';
-  image_url: string;
+  imageUrl: string;
 };
 
 type MistralMessage = {
@@ -13,16 +13,16 @@ type MistralMessage = {
   content: string | ContentPart[];
 };
 
-const mistral = new Mistral({ apiKey: import.meta.env.VITE_MISTRAL_API_KEY });
+const mistral = new Mistral({apiKey: import.meta.env.VITE_MISTRAL_API_KEY});
 
-async function fileToBase64DataUrl(file: File): Promise<string> {
+async function fileToImageUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         resolve(reader.result);
       } else {
-        reject(new Error('Failed to convert file to base64'));
+        reject(new Error('Failed to convert file to URL'));
       }
     };
     reader.onerror = reject;
@@ -31,8 +31,8 @@ async function fileToBase64DataUrl(file: File): Promise<string> {
 }
 
 export async function* getMistralResponse(
-  prompt: string,
-  files?: File[],
+  prompt: string, 
+  files?: File[], 
   context?: string,
   source: string = 'Suzie'
 ) {
@@ -44,7 +44,7 @@ export async function* getMistralResponse(
       for (const line of contextLines) {
         const [role, ...contentParts] = line.split(': ');
         const messageContent = contentParts.join(': ');
-
+        
         if (role.toLowerCase() === 'you') {
           messages.push({
             role: 'user',
@@ -61,18 +61,15 @@ export async function* getMistralResponse(
 
     if (files && files.length > 0) {
       const content: ContentPart[] = [
-        {
-          type: 'text',
-          text: prompt
-        }
+        { type: 'text', text: prompt }
       ];
 
       for (const file of files) {
         if (file.type.startsWith('image/')) {
-          const base64DataUrl = await fileToBase64DataUrl(file);
+          const imageUrl = await fileToImageUrl(file);
           content.push({
             type: 'image_url',
-            image_url: base64DataUrl
+            imageUrl: imageUrl
           });
         }
       }
@@ -91,7 +88,6 @@ export async function* getMistralResponse(
     const stream = await mistral.chat.stream({
       model: 'pixtral-12b-2409',
       messages: messages as any,
-      maxTokens: 2048,
     });
 
     for await (const chunk of stream) {
