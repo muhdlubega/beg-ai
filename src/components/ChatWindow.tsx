@@ -19,13 +19,23 @@ import {
 import { Textarea } from "./ui/textarea"
 import { ImagePreview } from "./ImagePreview"
 
+interface SerializedFile {
+  name: string;
+  type: string;
+  size: number;
+  lastModified: number;
+  url?: string;
+}
+
+type FileOrSerialized = File | SerializedFile;
+
 interface ChatWindowProps {
   source: string
   loading: boolean
   conversation: {
     user: string
     text?: string
-    files?: File[]
+    files?: FileOrSerialized[]
   }[]
   onClearHistory: () => void
   onEditMessage?: (index: number, text: string) => void

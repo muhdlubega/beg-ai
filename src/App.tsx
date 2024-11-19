@@ -340,14 +340,37 @@ export default function App() {
     if (!user) return;
   
     try {
-      const serializedMessages = messages.map(msg => ({
-        ...msg,
-        files: msg.files?.map((file: File) => ({
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          lastModified: file.lastModified,
-        }))
+      const serializedMessages = await Promise.all(messages.map(async (msg) => {
+        if (!msg.files) return msg;
+  
+        const serializedFiles = await Promise.all(msg.files.map(async (file: File) => {
+          if (file instanceof File) {
+            const fileName = `${Date.now()}-${file.name}`;
+            const { error } = await supabase.storage
+              .from('chat-images')
+              .upload(`${user.id}/${fileName}`, file);
+  
+            if (error) throw error;
+  
+            const { data: { publicUrl } } = supabase.storage
+              .from('chat-images')
+              .getPublicUrl(`${user.id}/${fileName}`);
+  
+            return {
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              lastModified: file.lastModified,
+              url: publicUrl
+            };
+          }
+          return file;
+        }));
+  
+        return {
+          ...msg,
+          files: serializedFiles
+        };
       }));
   
       const { error } = await supabase
