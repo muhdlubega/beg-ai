@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import TypingText from "./components/TypingText";
 import Cookies from 'js-cookie';
 import { Bot, HousePlug } from "lucide-react";
+import { ContentChunk } from "@mistralai/mistralai/models/components";
 
 const COOKIE_NAME = 'chat_history';
 
@@ -32,7 +33,7 @@ export default function App() {
     Cookies.set(COOKIE_NAME, JSON.stringify(conversations));
   }, [conversations]);
 
-  const handleSend = async (message: string, files?: File[]) => {
+  const handleSend = async (message: string, files?: File[], context?: string) => {
     if (chatSource) {
       setLoading(true);
       setConversations((prev) => ({
@@ -43,10 +44,10 @@ export default function App() {
           { user: chatSource, text: "" }
         ],
       }));
-
+  
       const stream = chatSource === "Suzie"
-        ? getMistralResponse(message, files)
-        : getGeminiResponse(message, files);
+        ? getMistralResponse(message, files, context)
+        : getGeminiResponse(message, files, context);
 
       try {
         const streamIterator = stream[Symbol.asyncIterator]();
@@ -221,25 +222,76 @@ export default function App() {
   };
 
   const handleEditMessage = (source: string, index: number, newText: string) => {
-    setConversations((prev) => ({
-      ...prev,
-      [source]: [
-        ...prev[source].slice(0, index),
-        { user: "You", text: newText },
-        { user: source, text: "" }
-      ]
-    }));
-    
-    handleSend(newText);
+    const contextMessages = conversations[source]
+      .slice(0, index)
+      .map(msg => `${msg.user}: ${msg.text}`)
+      .join('\n');
+  
+    setConversations((prev) => {
+      const messagesUpToEdit = prev[source].slice(0, index);
+      return {
+        ...prev,
+        [source]: messagesUpToEdit
+      };
+    });
+  
+    handleSend(newText, undefined, contextMessages);
+  };
+
+  const handleStreamResponse = async (stream: AsyncGenerator<string | ContentChunk[], void, unknown>, source: string) => {
+    try {
+      setLoading(true);
+      const streamIterator = stream[Symbol.asyncIterator]();
+      const firstChunk = await streamIterator.next();
+      setLoading(false);
+  
+      if (!firstChunk.done) {
+        setConversations((prev) => ({
+          ...prev,
+          [source]: prev[source].map((msg, index) => {
+            if (index === prev[source].length - 1 && msg.user === source) {
+              return { ...msg, text: (msg.text || "") + firstChunk.value };
+            }
+            return msg;
+          }),
+        }));
+      }
+  
+      for await (const chunk of stream) {
+        if (chunk === firstChunk.value) continue;
+        setConversations((prev) => ({
+          ...prev,
+          [source]: prev[source].map((msg, index) => {
+            if (index === prev[source].length - 1 && msg.user === source) {
+              return { ...msg, text: (msg.text || "") + chunk };
+            }
+            return msg;
+          }),
+        }));
+      }
+    } catch (error) {
+      console.error("Error in streaming response:", error);
+      setLoading(false);
+    }
   };
 
   const handleSwitchBot = (source: string, index: number) => {
     const newSource = source === "Suzie" ? "John" : "Suzie";
     const messageToSwitch = conversations[source][index].text;
-
+  
     setChatSource(newSource);
+  
     if (messageToSwitch) {
-      handleSend(messageToSwitch);
+      setConversations((prev) => ({
+        ...prev,
+        [newSource]: [...prev[newSource], { user: "You", text: messageToSwitch }, { user: newSource, text: "" }]
+      }));
+  
+      const stream = newSource === "Suzie"
+        ? getMistralResponse(messageToSwitch)
+        : getGeminiResponse(messageToSwitch);
+  
+      handleStreamResponse(stream, newSource);
     }
   };
 

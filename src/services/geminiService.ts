@@ -12,7 +12,7 @@ async function fileToGenerativePart(file: File) {
   };
 }
 
-export async function* getGeminiResponse(prompt: string, files?: File[]) {
+export async function* getGeminiResponse(prompt: string, files?: File[], context?: string) {
   try {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
@@ -21,13 +21,17 @@ export async function* getGeminiResponse(prompt: string, files?: File[]) {
       },
     });
 
+    const fullPrompt = context 
+      ? `${context}\nUser: ${prompt}`
+      : prompt;
+
     let response;
     if (files && files.length > 0) {
       const generativeParts = await Promise.all(files.map(fileToGenerativePart));
-      const imageParts = [prompt, ...generativeParts];
+      const imageParts = [fullPrompt, ...generativeParts];
       response = await model.generateContentStream(imageParts);
     } else {
-      response = await model.generateContentStream(prompt);
+      response = await model.generateContentStream(fullPrompt);
     }
     
     for await (const chunk of response.stream) {

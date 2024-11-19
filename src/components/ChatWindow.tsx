@@ -3,6 +3,12 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Bot, Check, Copy, Pencil, Trash2, X } from 'lucide-react'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider
+} from "@/components/ui/tooltip"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -112,7 +118,7 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
             <Button
               variant="outline"
               size="icon"
-              className="absolute bg-black top-4 right-4 h-8 w-8"
+              className="absolute bg-black hover:bg-zinc-900 top-4 right-4 h-8 w-8"
               onClick={(e) => {
                 e.stopPropagation()
                 navigator.clipboard.writeText(code)
@@ -146,7 +152,7 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
           </div>
         )
       }
-      if(line){
+      if (line) {
         return <div key={index} className="whitespace-pre-wrap word-wrap break-word">{formatBoldText(line)}</div>
       }
     })
@@ -178,151 +184,174 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
   }, [editingIndex])
 
   return (
-    <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
-      <div className="flex justify-between items-center p-4 border-b">
-        <div className="flex gap-2 items-center">
-          <h2 className="text-2xl font-bold">{source} Bot</h2>
-          <Bot className={source === 'John' ? 'text-cyan-600' : 'text-fuchsia-600'} />
+    <TooltipProvider>
+      <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b">
+          <div className="flex gap-2 items-center">
+            <h2 className="text-2xl font-bold">{source} Bot</h2>
+            <Bot className={source === 'John' ? 'text-cyan-600' : 'text-fuchsia-600'} />
+          </div>
+          <Button
+            size="icon"
+            variant='ghost'
+            onClick={() => setShowDeleteDialog(true)}
+            className="h-8 w-8 bg-transparent hover:text-destructive"
+          >
+            <Trash2 color="black" className="h-4 w-4" />
+          </Button>
         </div>
-        <Button
-          size="icon"
-          variant='ghost'
-          onClick={() => setShowDeleteDialog(true)}
-          className="h-8 w-8 bg-transparent hover:text-destructive"
+        <ScrollArea
+          ref={scrollAreaRef}
+          className="flex-grow p-4"
+          onScroll={handleScroll}
         >
-          <Trash2 color="black" className="h-4 w-4" />
-        </Button>
-      </div>
-      <ScrollArea
-        ref={scrollAreaRef}
-        className="flex-grow p-4"
-        onScroll={handleScroll}
-      >
-        <div className="space-y-4 p-2">
-          {filteredConversation.map((msg, index) => (
-            <div key={index}>
-              {index === filteredConversation.length - 1 && msg.user === source && loading ? (
-                <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left" />
-              ) : (
-                <div className="space-y-2">
-                  {editingIndex === index && msg.user === "You" ? (
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <Textarea
-                          ref={editInputRef as any}
-                          value={editText}
-                          onChange={(e) => {
-                            setEditText(e.target.value)
-                            handleTextAreaHeight(e.target)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault()
-                              handleSubmitEdit(index)
-                            }
-                          }}
-                          className="min-h-[100px] resize-none border-black"
-                          placeholder="Edit your message..."
-                          onFocus={(e) => handleTextAreaHeight(e.target)}
-                        />
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleSubmitEdit(index)}
-                        className="bg-transparent"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleCancelEdit}
-                        className="bg-transparent"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div
-                        className={`p-2 rounded-lg ${msg.user === "You"
-                          ? "bg-muted ml-auto"
-                          : "bg-primary text-primary-foreground"
-                          } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
-                      >
-                        <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
-                      </div>
-                      <div className={`flex ${msg.user === "You" ? "justify-end" : "justify-start"}`}>
+          <div className="space-y-4 p-2">
+            {filteredConversation.map((msg, index) => (
+              <div key={index}>
+                {index === filteredConversation.length - 1 && msg.user === source && loading ? (
+                  <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left" />
+                ) : (
+                  <div className="space-y-2">
+                    {editingIndex === index && msg.user === "You" ? (
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Textarea
+                            ref={editInputRef as any}
+                            value={editText}
+                            onChange={(e) => {
+                              setEditText(e.target.value)
+                              handleTextAreaHeight(e.target)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleSubmitEdit(index)
+                              }
+                            }}
+                            className="min-h-[100px] resize-none border-black"
+                            placeholder="Edit your message..."
+                            onFocus={(e) => handleTextAreaHeight(e.target)}
+                          />
+                        </div>
                         <Button
+                          size="icon"
                           variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(msg.text || "");
-                            setCopiedIndex(index);
-                            setTimeout(() => setCopiedIndex(null), 2000);
-                          }}
-                          className="rounded-full bg-transparent"
+                          onClick={() => handleSubmitEdit(index)}
+                          className="bg-transparent"
                         >
-                          {copiedIndex === index ? (
-                            <span className="text-xs">Copied!</span>
-                          ) : (
-                            <Copy />
-                          )}
+                          <Check className="h-4 w-4" />
                         </Button>
-                        {msg.user === "You" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStartEdit(index, msg.text || "")}
-                              className="rounded-full bg-transparent"
-                            >
-                              <Pencil />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onSwitchBot && onSwitchBot(index)}
-                              className="rounded-full bg-transparent"
-                            >
-                              <Bot className={`${source === "Suzie" ? "text-cyan-600" : "text-fuchsia-600"}`} />
-                            </Button>
-                          </>
-                        )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={handleCancelEdit}
+                          className="bg-transparent"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="[&>button]:hidden">
-          <DialogHeader>
-            <DialogTitle>Delete Conversation</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to clear your chat history? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              color="black"
-              onClick={handleDelete}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+                    ) : (
+                      <>
+                        <div
+                          className={`p-2 rounded-lg ${msg.user === "You"
+                            ? "bg-muted ml-auto"
+                            : "bg-primary text-primary-foreground"
+                            } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
+                        >
+                          <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
+                        </div>
+                        <div className={`flex ${msg.user === "You" ? "justify-end" : "justify-start"}`}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(msg.text || "");
+                                  setCopiedIndex(index);
+                                  setTimeout(() => setCopiedIndex(null), 2000);
+                                }}
+                                className="rounded-full bg-transparent"
+                              >
+                                {copiedIndex === index ? (
+                                  <span className="text-xs">Copied!</span>
+                                ) : (
+                                  <Copy />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copy message</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          {msg.user === "You" && (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleStartEdit(index, msg.text || "")}
+                                    className="rounded-full bg-transparent"
+                                  >
+                                    <Pencil />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Edit message</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onSwitchBot && onSwitchBot(index)}
+                                    className="rounded-full bg-transparent"
+                                  >
+                                    <Bot className={`${source === "Suzie" ? "text-cyan-600" : "text-fuchsia-600"}`} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ask {source === "Suzie" ? "John" : "Suzie"} instead</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent className="[&>button]:hidden">
+            <DialogHeader>
+              <DialogTitle>Delete Conversation</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to clear your chat history? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                color="black"
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   )
 }
