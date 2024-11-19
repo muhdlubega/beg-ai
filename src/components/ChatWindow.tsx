@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Bot, Copy, Trash2 } from 'lucide-react'
+import { Bot, Check, Copy, Pencil, Trash2, X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Textarea } from "./ui/textarea"
 
 interface ChatWindowProps {
   source: string
@@ -19,6 +20,8 @@ interface ChatWindowProps {
     text?: string
   }[]
   onClearHistory: () => void
+  onEditMessage?: (index: number, text: string) => void
+  onSwitchBot?: (index: number) => void
 }
 
 interface CodeMatch {
@@ -29,11 +32,37 @@ interface CodeMatch {
   input: string
 }
 
-export default function ChatWindow({ source, loading, conversation, onClearHistory }: ChatWindowProps) {
+export default function ChatWindow({ source, loading, conversation, onClearHistory, onEditMessage, onSwitchBot }: ChatWindowProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editText, setEditText] = useState("")
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
+
+  const handleStartEdit = (index: number, text: string) => {
+    setEditingIndex(index)
+    setEditText(text)
+    setTimeout(() => {
+      if (editInputRef.current) {
+        editInputRef.current.focus()
+      }
+    }, 0)
+  }
+
+  const handleSubmitEdit = (index: number) => {
+    if (editText.trim() && onEditMessage) {
+      onEditMessage(index, editText.trim())
+    }
+    setEditingIndex(null)
+    setEditText("")
+  }
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null)
+    setEditText("")
+  }
 
   useEffect(() => {
     if (scrollAreaRef.current && shouldAutoScroll) {
@@ -73,7 +102,7 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
       const code = match[2].trim()
       parts.push(
         <div key={match.index} className="relative">
-          <pre className="rounded-sm bg-black p-4 whitespace-pre-wrap word-wrap break-word">
+          <pre className="rounded-sm border border-white p-4 whitespace-pre-wrap word-wrap break-word">
             <code className={`language-${language} text-sm text-white`}>{code}</code>
           </pre>
           <Button
@@ -131,6 +160,21 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
     })
   }
 
+  const handleTextAreaHeight = (element: HTMLTextAreaElement) => {
+    element.style.height = 'inherit'
+    element.style.height = `${element.scrollHeight}px`
+  }
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && editingIndex !== null) {
+        handleCancelEdit()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [editingIndex])
+
   return (
     <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
       <div className="flex justify-between items-center p-4 border-b">
@@ -151,26 +195,105 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
         ref={scrollAreaRef}
         className="flex-grow p-4"
         onScroll={handleScroll}
-        >
-        <div className="space-y-4">
+      >
+        <div className="space-y-4 p-2">
           {filteredConversation.map((msg, index) => (
-            <>
-              {
-                index === filteredConversation.length - 1 && msg.user === source && loading ? (
-                  <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left">
-                  </div>) : (
-                  <div
-                    key={index}
-                    className={`p-2 rounded-lg ${msg.user === "You"
-                      ? "bg-primary text-primary-foreground ml-auto"
-                      : "bg-muted"
-                      } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
-                  >
-                    <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
-                  </div>)
-              }
-            </>
-
+            <div key={index}>
+              {index === filteredConversation.length - 1 && msg.user === source && loading ? (
+                <div className="p-2 h-10 rounded-lg bg-muted-foreground animate-pulse max-w-[80%] text-left" />
+              ) : (
+                <div className="space-y-2">
+                  {editingIndex === index && msg.user === "You" ? (
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Textarea
+                          ref={editInputRef as any}
+                          value={editText}
+                          onChange={(e) => {
+                            setEditText(e.target.value)
+                            handleTextAreaHeight(e.target)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              handleSubmitEdit(index)
+                            }
+                          }}
+                          className="min-h-[100px] resize-none border-black"
+                          placeholder="Edit your message..."
+                          onFocus={(e) => handleTextAreaHeight(e.target)}
+                        />
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleSubmitEdit(index)}
+                        className="bg-transparent"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleCancelEdit}
+                        className="bg-transparent"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className={`p-2 rounded-lg ${msg.user === "You"
+                          ? "bg-muted ml-auto"
+                          : "bg-primary text-primary-foreground"
+                          } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
+                      >
+                        <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
+                      </div>
+                      <div className={`flex ${msg.user === "You" ? "justify-end" : "justify-start"}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(msg.text || "");
+                            setCopiedIndex(index);
+                            setTimeout(() => setCopiedIndex(null), 2000);
+                          }}
+                          className="rounded-full bg-transparent"
+                        >
+                          {copiedIndex === index ? (
+                            <span className="text-xs">Copied!</span>
+                          ) : (
+                            <Copy />
+                          )}
+                        </Button>
+                        {msg.user === "You" && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStartEdit(index, msg.text || "")}
+                              className="rounded-full bg-transparent"
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onSwitchBot && onSwitchBot(index)}
+                              className="rounded-full bg-transparent"
+                            >
+                              <Bot className={`${source === "Suzie" ? "text-cyan-600" : "text-fuchsia-600"}`} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </ScrollArea>

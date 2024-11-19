@@ -5,17 +5,28 @@ import { Paperclip, Trash2 } from 'lucide-react'
 
 interface ChatInputProps {
   onSend: (message: string, files?: File[]) => Promise<void>
+  value?: string
+  onChange?: (value: string) => void
 }
 
-export default function ChatInput({ onSend }: ChatInputProps) {
+export default function ChatInput({ onSend, value, onChange }: ChatInputProps) {
   const [message, setMessage] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const inputValue = value !== undefined ? value : message
+  const handleMessageChange = (newValue: string) => {
+    if (onChange) {
+      onChange(newValue)
+    } else {
+      setMessage(newValue)
+    }
+  }
+
   const handleSend = () => {
-    if (message.trim() || files.length > 0) {
-      onSend(message, files)
-      setMessage('')
+    if (inputValue.trim() || files.length > 0) {
+      onSend(inputValue, files)
+      handleMessageChange('')
       setFiles([])
     }
   }
@@ -37,8 +48,8 @@ export default function ChatInput({ onSend }: ChatInputProps) {
           {files.map((file, index) => (
             <div key={index} className="flex items-center gap-2 bg-muted p-2 rounded-md">
               <span className="text-sm">{file.name}</span>
-              <Trash2 className="hover:text-zinc-500 h-4 w-4" 
-                onClick={() => removeFile(index)}/>
+              <Trash2 className="hover:text-zinc-500 h-4 w-4"
+                onClick={() => removeFile(index)} />
             </div>
           ))}
         </div>
@@ -63,8 +74,8 @@ export default function ChatInput({ onSend }: ChatInputProps) {
           type="text"
           className="flex-1"
           placeholder="Type your message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={inputValue}
+          onChange={(e) => handleMessageChange(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
         />
         <Button onClick={handleSend}>Send</Button>

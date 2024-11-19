@@ -25,6 +25,7 @@ export default function App() {
       John: [],
     };
   });
+  const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -43,9 +44,9 @@ export default function App() {
         ],
       }));
 
-      const stream = chatSource === "Suzie" 
-      ? getMistralResponse(message, files) 
-      : getGeminiResponse(message, files);
+      const stream = chatSource === "Suzie"
+        ? getMistralResponse(message, files)
+        : getGeminiResponse(message, files);
 
       try {
         const streamIterator = stream[Symbol.asyncIterator]();
@@ -219,6 +220,29 @@ export default function App() {
     return conversations.Suzie.length > 0 || conversations.John.length > 0;
   };
 
+  const handleEditMessage = (source: string, index: number, newText: string) => {
+    setConversations((prev) => ({
+      ...prev,
+      [source]: [
+        ...prev[source].slice(0, index),
+        { user: "You", text: newText },
+        { user: source, text: "" }
+      ]
+    }));
+    
+    handleSend(newText);
+  };
+
+  const handleSwitchBot = (source: string, index: number) => {
+    const newSource = source === "Suzie" ? "John" : "Suzie";
+    const messageToSwitch = conversations[source][index].text;
+
+    setChatSource(newSource);
+    if (messageToSwitch) {
+      handleSend(messageToSwitch);
+    }
+  };
+
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
       <div className="container h-full mx-auto p-4 max-w-5xl">
@@ -243,8 +267,12 @@ export default function App() {
               conversation={conversations[chatSource]}
               loading={loading}
               onClearHistory={() => clearHistory(chatSource)}
+              onEditMessage={(index, newText) => handleEditMessage(chatSource, index, newText)}
+              onSwitchBot={(index) => handleSwitchBot(chatSource, index)}
             />
-            <ChatInput onSend={handleSend} />
+            <ChatInput onSend={handleSend}
+              value={inputText}
+              onChange={setInputText} />
           </>
         ) : (
           <>
