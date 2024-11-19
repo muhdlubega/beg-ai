@@ -31,7 +31,7 @@ export const ImagePreview = ({ file }: { file: File }) => {
             </div>
 
             <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
-                <DialogContent className="max-w-4xl p-0">
+                <DialogContent className="max-w-4xl p-0 [&>button]:hidden">
                     <img
                         src={imageUrl}
                         alt={file.name}
