@@ -9,6 +9,8 @@ import TypingText from "./components/TypingText";
 import Cookies from 'js-cookie';
 import { Bot, HousePlug } from "lucide-react";
 import { ContentChunk } from "@mistralai/mistralai/models/components";
+import { supabase } from "./lib/supaBaseClient";
+import { User } from "@supabase/supabase-js";
 
 const COOKIE_NAME = 'chat_history';
 
@@ -28,6 +30,44 @@ export default function App() {
   });
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error logging in:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   useEffect(() => {
     Cookies.set(COOKIE_NAME, JSON.stringify(conversations));
@@ -44,7 +84,7 @@ export default function App() {
           { user: chatSource, text: "" }
         ],
       }));
-  
+
       const stream = chatSource === "Suzie"
         ? getMistralResponse(message, files, context)
         : getGeminiResponse(message, files, context);
@@ -226,7 +266,7 @@ export default function App() {
       .slice(0, index)
       .map(msg => `${msg.user}: ${msg.text}`)
       .join('\n');
-  
+
     setConversations((prev) => {
       const messagesUpToEdit = prev[source].slice(0, index);
       return {
@@ -234,7 +274,7 @@ export default function App() {
         [source]: messagesUpToEdit
       };
     });
-  
+
     handleSend(newText, undefined, contextMessages);
   };
 
@@ -244,7 +284,7 @@ export default function App() {
       const streamIterator = stream[Symbol.asyncIterator]();
       const firstChunk = await streamIterator.next();
       setLoading(false);
-  
+
       if (!firstChunk.done) {
         setConversations((prev) => ({
           ...prev,
@@ -256,7 +296,7 @@ export default function App() {
           }),
         }));
       }
-  
+
       for await (const chunk of stream) {
         if (chunk === firstChunk.value) continue;
         setConversations((prev) => ({
@@ -278,25 +318,113 @@ export default function App() {
   const handleSwitchBot = (source: string, index: number) => {
     const newSource = source === "Suzie" ? "John" : "Suzie";
     const messageToSwitch = conversations[source][index].text;
-  
+
     setChatSource(newSource);
-  
+
     if (messageToSwitch) {
       setConversations((prev) => ({
         ...prev,
         [newSource]: [...prev[newSource], { user: "You", text: messageToSwitch }, { user: newSource, text: "" }]
       }));
-  
+
       const stream = newSource === "Suzie"
         ? getMistralResponse(messageToSwitch)
         : getGeminiResponse(messageToSwitch);
-  
+
       handleStreamResponse(stream, newSource);
     }
   };
 
+  const saveConversation = async (source: string, messages: any[]) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .upsert({
+          user_id: user.id,
+          chat_source: source,
+          messages: messages
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+    }
+  };
+
+  const loadConversations = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedConversations = data.reduce((acc, conv) => ({
+          ...acc,
+          [conv.chat_source]: conv.messages
+        }), {
+          Suzie: [],
+          John: [],
+        });
+
+        setConversations(formattedConversations);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadConversations();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      if (chatSource) {
+        saveConversation(chatSource, conversations[chatSource]);
+      } else {
+        saveConversation('Suzie', conversations.Suzie);
+        saveConversation('John', conversations.John);
+      }
+    }
+  }, [conversations, user]);
+
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
+      <div className="absolute top-4 right-4">
+        {user ? (
+          <div className="flex items-center gap-4">
+            <span className="text-sm">{user.email}</span>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={handleLogin}
+            className="flex items-center gap-2"
+          >
+            <img
+              src="https://www.google.com/favicon.ico"
+              alt="Google"
+              className="w-4 h-4"
+            />
+            Login with Google
+          </Button>
+        )}
+      </div>
       <div className="container h-full mx-auto p-4 max-w-5xl">
         {chatSource ? (
           <>
