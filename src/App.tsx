@@ -81,7 +81,7 @@ export default function App() {
         ...prev,
         [chatSource]: [
           ...prev[chatSource],
-          { user: "You", text: message },
+          { user: "You", text: message, files },
           { user: chatSource, text: "" }
         ],
       }));
@@ -128,8 +128,8 @@ export default function App() {
 
       setConversations((prev) => ({
         ...prev,
-        Suzie: [...prev.Suzie, { user: "You", text: message }, { user: "Suzie", text: "" }],
-        John: [...prev.John, { user: "You", text: message }, { user: "John", text: "" }],
+        Suzie: [...prev.Suzie, { user: "You", text: message, files }, { user: "Suzie", text: "" }],
+        John: [...prev.John, { user: "You", text: message, files }, { user: "John", text: "" }],
       }));
 
       setResponses([
@@ -338,16 +338,26 @@ export default function App() {
 
   const saveConversation = async (source: string, messages: any[]) => {
     if (!user) return;
-
+  
     try {
+      const serializedMessages = messages.map(msg => ({
+        ...msg,
+        files: msg.files?.map((file: File) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          lastModified: file.lastModified,
+        }))
+      }));
+  
       const { error } = await supabase
         .from('conversations')
         .upsert({
           user_id: user.id,
           chat_source: source,
-          messages: messages
+          messages: serializedMessages
         });
-
+  
       if (error) throw error;
     } catch (error) {
       console.error('Error saving conversation:', error);
