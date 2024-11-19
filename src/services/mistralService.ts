@@ -1,12 +1,20 @@
 import { Mistral } from '@mistralai/mistralai';
 
-type ContentPart = {
+type TextContent = {
   type: 'text';
   text: string;
-} | {
+}
+
+type ImageContent = {
   type: 'image';
-  image_url: string;
-};
+  source: {
+    type: 'base64';
+    media_type: string;
+    data: string;
+  };
+}
+
+type ContentPart = TextContent | ImageContent;
 
 type MistralMessage = {
   role: 'user' | 'assistant' | 'system';
@@ -42,10 +50,14 @@ export async function* getMistralResponse(
 
       for (const file of files) {
         if (file.type.startsWith('image/')) {
-          const base64Url = await fileToBase64ImageUrl(file);
+          const base64Data = await fileToBase64(file);
           content.push({
             type: 'image',
-            image_url: base64Url
+            source: {
+              type: 'base64',
+              media_type: file.type,
+              data: base64Data
+            }
           });
         }
       }
@@ -77,12 +89,13 @@ export async function* getMistralResponse(
   }
 }
 
-async function fileToBase64ImageUrl(file: File): Promise<string> {
+async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        resolve(reader.result);
+        const base64Data = reader.result.split(',')[1];
+        resolve(base64Data);
       } else {
         reject(new Error('Failed to convert file to base64'));
       }
