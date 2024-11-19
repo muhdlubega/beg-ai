@@ -54,7 +54,7 @@ export async function* getMistralResponse(
     });
 
     const stream = await mistral.chat.stream({
-      model: 'mistral-large-latest',
+      model: 'pixtral-12b-2409',
       messages,
     });
 
