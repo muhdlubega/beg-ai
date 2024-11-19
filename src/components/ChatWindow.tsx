@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "./ui/textarea"
+import { ImagePreview } from "./ImagePreview"
 
 interface ChatWindowProps {
   source: string
@@ -24,6 +25,7 @@ interface ChatWindowProps {
   conversation: {
     user: string
     text?: string
+    files?: File[]
   }[]
   onClearHistory: () => void
   onEditMessage?: (index: number, text: string) => void
@@ -258,6 +260,13 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
                             : "bg-primary text-primary-foreground"
                             } max-w-[80%] text-left whitespace-pre-wrap word-wrap break-word`}
                         >
+                          {msg.files && msg.files.length > 0 && (
+                            <div className="space-y-2 mb-2">
+                              {msg.files.map((file, fileIndex) => (
+                                <ImagePreview key={fileIndex} file={file} />
+                              ))}
+                            </div>
+                          )}
                           <strong>{msg.user}:</strong> {msg.text && formatResponse(msg.text)}
                         </div>
                         <div className={`flex ${msg.user === "You" ? "justify-end" : "justify-start"}`}>
