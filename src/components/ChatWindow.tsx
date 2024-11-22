@@ -197,11 +197,11 @@ export default function ChatWindow({ source, loading, conversation, onClearHisto
 
   return (
     <TooltipProvider>
-      <div className="border rounded-lg mb-4 h-[77vh] flex flex-col">
+      <div className="border rounded-lg mb-4 h-[70vh] flex flex-col">
         <div className="flex justify-between items-center p-4 border-b">
           <div className="flex gap-2 items-center">
             <h2 className="text-2xl font-bold">{source} Bot</h2>
-            <Bot className={source === 'John' ? 'text-cyan-600' : 'text-fuchsia-600'} />
+            <Bot className={source.startsWith('John') ? 'text-cyan-600' : 'text-fuchsia-600'} />
           </div>
           <Button
             size="icon"

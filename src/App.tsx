@@ -7,10 +7,11 @@ import { getGeminiResponse } from "./services/geminiService";
 import { Button } from "@/components/ui/button";
 import TypingText from "./components/TypingText";
 import Cookies from 'js-cookie';
-import { Bot, HousePlug, LogIn, LogOut } from "lucide-react";
-import { ContentChunk } from "@mistralai/mistralai/models/components";
+import { Bot, HousePlug, LogIn, LogOut, Menu } from "lucide-react";
+// import { ContentChunk } from "@mistralai/mistralai/models/components";
 import { supabase } from "./lib/supaBaseClient";
 import { User } from "@supabase/supabase-js";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "./components/ui/sheet";
 
 const COOKIE_NAME = 'chat_history';
 
@@ -20,16 +21,14 @@ export default function App() {
   >([]);
   const [chatSource, setChatSource] = useState<string>("");
   const [conversations, setConversations] = useState<{
-    [key: string]: { user: string; text?: string }[]
-  }>(() => {
-    const savedConversations = Cookies.get(COOKIE_NAME);
-    return savedConversations ? JSON.parse(savedConversations) : {
-      Suzie: [],
-      John: [],
-    };
+    [key: string]: { user: string; text?: string }[];
+  }>({
+    Suzie: [],
+    John: [],
   });
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -248,93 +247,123 @@ export default function App() {
     setConversations((prev) => ({ ...prev, [newSource]: conversations[newSource] }));
   };
 
-  const clearHistory = (source: string) => {
-    setConversations((prev) => ({
-      ...prev,
-      [source]: [],
-    }));
-    Cookies.set(COOKIE_NAME, JSON.stringify({
-      ...conversations,
-      [source]: [],
-    }));
+  const clearHistory = () => {
+    // setConversations((prev) => ({
+    //   ...prev,
+    //   [source]: [],
+    // }));
+    // Cookies.set(COOKIE_NAME, JSON.stringify({
+    //   ...conversations,
+    //   [source]: [],
+    // }));
+    setConversations((prev) => ({ ...prev, [chatSource]: [] }));
   };
 
   const hasSavedConversations = () => {
     return conversations.Suzie.length > 0 || conversations.John.length > 0;
   };
 
-  const handleEditMessage = (source: string, index: number, newText: string) => {
-    const contextMessages = conversations[source]
-      .slice(0, index)
-      .map(msg => `${msg.user}: ${msg.text}`)
-      .join('\n');
+  const handleEditMessage = (index: number, newText: string) => {
+    // const contextMessages = conversations[source]
+    //   .slice(0, index)
+    //   .map(msg => `${msg.user}: ${msg.text}`)
+    //   .join('\n');
+
+    // setConversations((prev) => {
+    //   const messagesUpToEdit = prev[source].slice(0, index);
+    //   return {
+    //     ...prev,
+    //     [source]: messagesUpToEdit
+    //   };
+    // });
+
+    // handleSend(newText, undefined, contextMessages);
 
     setConversations((prev) => {
-      const messagesUpToEdit = prev[source].slice(0, index);
-      return {
-        ...prev,
-        [source]: messagesUpToEdit
-      };
+      const updatedMessages = [...prev[chatSource]];
+      updatedMessages[index].text = newText;
+      return { ...prev, [chatSource]: updatedMessages };
     });
-
-    handleSend(newText, undefined, contextMessages);
   };
 
-  const handleStreamResponse = async (stream: AsyncGenerator<string | ContentChunk[], void, unknown>, source: string) => {
-    try {
-      setLoading(true);
-      const streamIterator = stream[Symbol.asyncIterator]();
-      const firstChunk = await streamIterator.next();
-      setLoading(false);
+  // const handleStreamResponse = async (stream: AsyncGenerator<string | ContentChunk[], void, unknown>, source: string) => {
+  //   try {
+  //     setLoading(true);
+  //     const streamIterator = stream[Symbol.asyncIterator]();
+  //     const firstChunk = await streamIterator.next();
+  //     setLoading(false);
 
-      if (!firstChunk.done) {
-        setConversations((prev) => ({
-          ...prev,
-          [source]: prev[source].map((msg, index) => {
-            if (index === prev[source].length - 1 && msg.user === source) {
-              return { ...msg, text: (msg.text || "") + firstChunk.value };
-            }
-            return msg;
-          }),
-        }));
-      }
+  //     if (!firstChunk.done) {
+  //       setConversations((prev) => ({
+  //         ...prev,
+  //         [source]: prev[source].map((msg, index) => {
+  //           if (index === prev[source].length - 1 && msg.user === source) {
+  //             return { ...msg, text: (msg.text || "") + firstChunk.value };
+  //           }
+  //           return msg;
+  //         }),
+  //       }));
+  //     }
 
-      for await (const chunk of stream) {
-        if (chunk === firstChunk.value) continue;
-        setConversations((prev) => ({
-          ...prev,
-          [source]: prev[source].map((msg, index) => {
-            if (index === prev[source].length - 1 && msg.user === source) {
-              return { ...msg, text: (msg.text || "") + chunk };
-            }
-            return msg;
-          }),
-        }));
-      }
-    } catch (error) {
-      console.error("Error in streaming response:", error);
-      setLoading(false);
-    }
+  //     for await (const chunk of stream) {
+  //       if (chunk === firstChunk.value) continue;
+  //       setConversations((prev) => ({
+  //         ...prev,
+  //         [source]: prev[source].map((msg, index) => {
+  //           if (index === prev[source].length - 1 && msg.user === source) {
+  //             return { ...msg, text: (msg.text || "") + chunk };
+  //           }
+  //           return msg;
+  //         }),
+  //       }));
+  //     }
+  //   } catch (error) {
+  //     console.error("Error in streaming response:", error);
+  //     setLoading(false);
+  //   }
+  // };
+
+  const handleSwitchBot = (index: number) => {
+    // const newSource = source === "Suzie" ? "John" : "Suzie";
+    // const messageToSwitch = conversations[source][index].text;
+
+    // setChatSource(newSource);
+
+    // if (messageToSwitch) {
+    //   setConversations((prev) => ({
+    //     ...prev,
+    //     [newSource]: [...prev[newSource], { user: "You", text: messageToSwitch }, { user: newSource, text: "" }]
+    //   }));
+
+    //   const stream = newSource === "Suzie"
+    //     ? getMistralResponse(messageToSwitch)
+    //     : getGeminiResponse(messageToSwitch);
+
+    //   handleStreamResponse(stream, newSource);
+    // }
+
+    const newSource = chatSource === "Suzie" ? "John" : "Suzie";
+    const switchedMessage = conversations[chatSource][index]?.text || "";
+    createNewChat(newSource);
+    setConversations((prev) => ({
+      ...prev,
+      [newSource]: [...prev[newSource], { user: "You", text: switchedMessage }],
+    }));
   };
 
-  const handleSwitchBot = (source: string, index: number) => {
-    const newSource = source === "Suzie" ? "John" : "Suzie";
-    const messageToSwitch = conversations[source][index].text;
+  const createChatName = (botName: string) => {
+    const count = Object.keys(conversations).filter((name) => name.startsWith(botName)).length + 1;
+    return `${botName} #${count}`;
+  };
 
-    setChatSource(newSource);
-
-    if (messageToSwitch) {
-      setConversations((prev) => ({
-        ...prev,
-        [newSource]: [...prev[newSource], { user: "You", text: messageToSwitch }, { user: newSource, text: "" }]
-      }));
-
-      const stream = newSource === "Suzie"
-        ? getMistralResponse(messageToSwitch)
-        : getGeminiResponse(messageToSwitch);
-
-      handleStreamResponse(stream, newSource);
-    }
+  const createNewChat = (botName: string) => {
+    const newChatName = createChatName(botName);
+    setConversations((prev) => ({
+      ...prev,
+      [newChatName]: [],
+    }));
+    setChatSource(newChatName);
+    setIsSidebarOpen(false);
   };
 
   const saveConversation = async (source: string, messages: any[]) => {
@@ -399,25 +428,21 @@ export default function App() {
 
     try {
       const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('user_id', user.id);
+        .from("conversations")
+        .select("*")
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
       if (data) {
-        const formattedConversations = data.reduce((acc, conv) => ({
-          ...acc,
-          [conv.chat_source]: conv.messages
-        }), {
-          Suzie: [],
-          John: [],
-        });
-
+        const formattedConversations = data.reduce((acc, conv) => {
+          acc[conv.chat_source] = conv.messages || [];
+          return acc;
+        }, {});
         setConversations(formattedConversations);
       }
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error("Error loading conversations:", error);
     }
   };
 
@@ -440,6 +465,52 @@ export default function App() {
 
   return (
     <div className="min-h-screen w-screen bg-background text-foreground flex items-center">
+      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+        <SheetTrigger asChild>
+          <Menu className="absolute top-6 left-5 h-5 w-5 cursor-pointer" />
+        </SheetTrigger>
+        <SheetContent className="[&>button]:hidden" side="left">
+          <SheetHeader>
+            <SheetTitle>[Discourse]:</SheetTitle>
+            <SheetDescription>Start a new or manage current ones</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            {Object.keys(conversations).map((chatName) => (
+              <Button
+                key={chatName}
+                variant="outline"
+                onClick={() => {
+                  setChatSource(chatName);
+                  setIsSidebarOpen(false);
+                }}
+                className="w-full justify-between"
+              >
+                {chatName}
+                <Bot className={`${chatName.startsWith("Suzie") ? "text-fuchsia-600" : "text-cyan-600"} h-4 w-4`} />
+              </Button>
+            ))}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="default"
+                onClick={() => createNewChat("Suzie")}
+                className="w-full bg-fuchsia-600"
+              >
+                <Bot className="h-4 w-4" />
+                [Construct]: Suzie
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => createNewChat("John")}
+                className="w-full bg-cyan-600"
+              >
+                <Bot className="h-4 w-4" />
+                [Construct]: John
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
       <div className="absolute top-4 right-4">
         {user ? (
           <div className="flex items-center gap-4">
@@ -467,7 +538,7 @@ export default function App() {
       <div className="container h-full mx-auto p-4 max-w-5xl">
         {chatSource ? (
           <>
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-4 mt-10">
               <HousePlug
                 className="cursor-pointer hover:text-zinc-500"
                 onClick={() => setChatSource("")}
@@ -478,16 +549,16 @@ export default function App() {
                 className="flex items-center gap-2"
               >
                 <Bot className={`${chatSource === 'Suzie' ? 'text-cyan-600' : 'text-fuchsia-600'} h-4 w-4`} />
-                [Confabulate]: {chatSource === "Suzie" ? "John" : "Suzie"}
+                [Confabulate]: {chatSource.startsWith("Suzie") ? "John" : "Suzie"}
               </Button>
             </div>
             <ChatWindow
               source={chatSource}
               conversation={conversations[chatSource]}
               loading={loading}
-              onClearHistory={() => clearHistory(chatSource)}
-              onEditMessage={(index, newText) => handleEditMessage(chatSource, index, newText)}
-              onSwitchBot={(index) => handleSwitchBot(chatSource, index)}
+              onClearHistory={() => clearHistory()}
+              onEditMessage={(index, newText) => handleEditMessage(index, newText)}
+              onSwitchBot={(index) => handleSwitchBot(index)}
             />
             <ChatInput onSend={handleSend}
               value={inputText}
